@@ -1,9 +1,11 @@
-Feature: Login as admin at Shoptester
+Feature: Login
 
-    Scenario: Log in form
-        Given I am on Shoptester homepage
-        And I see the "Login" button
-        When I click on the "Login" button
-        And i fill in the login form with valid credentials
-        And press the submit button
-        Then I should be logged in
+    Scenario: Login in as a user
+
+        Given I am at the WTP homepage
+        And I see the register button
+        When I click on the register button 
+        Then I should see the register form
+        When I fill in the form with valid data
+        And I click on the submit button
+        Then I should see a success message

@@ -902,6 +902,8 @@
 /Users/sebastianholmberg/repos/Shoptester-playwright/N2NTest/obj/Debug/net8.0/N2NTest.pdb
 /Users/sebastianholmberg/repos/Shoptester-playwright/N2NTest/obj/Debug/net8.0/N2NTest.genruntimeconfig.cache
 /Users/sebastianholmberg/repos/Shoptester-playwright/N2NTest/obj/Debug/net8.0/ref/N2NTest.dll
+/Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/TechTalk.SpecFlow.xUnit.SpecFlowPlugin.dll
+/Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/.playwright/node/darwin-arm64/node
 /Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/.playwright/node/LICENSE
 /Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/.playwright/package/api.json
 /Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/.playwright/package/bin/install_media_pack.ps1
@@ -1241,8 +1243,6 @@
 /Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/xunit.runner.visualstudio.dotnetcore.testadapter.dll
 /Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/xunit.runner.reporters.netcoreapp10.dll
 /Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/xunit.runner.utility.netcoreapp10.dll
-/Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/TechTalk.SpecFlow.xUnit.SpecFlowPlugin.dll
-/Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/.playwright/node/darwin-arm64/node
 /Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/N2NTest.deps.json
 /Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/N2NTest.runtimeconfig.json
 /Users/sebastianholmberg/repos/Testing/N2NTest/bin/Debug/net8.0/N2NTest.dll

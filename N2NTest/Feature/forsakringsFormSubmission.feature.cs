@@ -19,7 +19,7 @@ namespace N2NTest.Feature
     
     [System.CodeDom.Compiler.GeneratedCodeAttribute("TechTalk.SpecFlow", "3.9.0.0")]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    public partial class RegisterAUserAtShoptesterFeature : object, Xunit.IClassFixture<RegisterAUserAtShoptesterFeature.FixtureData>, System.IDisposable
+    public partial class InsuranceFormSubmissionFeature : object, Xunit.IClassFixture<InsuranceFormSubmissionFeature.FixtureData>, System.IDisposable
     {
         
         private static TechTalk.SpecFlow.ITestRunner testRunner;
@@ -28,10 +28,10 @@ namespace N2NTest.Feature
         
         private Xunit.Abstractions.ITestOutputHelper _testOutputHelper;
         
-#line 1 "register.feature"
+#line 1 "forsakringsFormSubmission.feature"
 #line hidden
         
-        public RegisterAUserAtShoptesterFeature(RegisterAUserAtShoptesterFeature.FixtureData fixtureData, N2NTest_XUnitAssemblyFixture assemblyFixture, Xunit.Abstractions.ITestOutputHelper testOutputHelper)
+        public InsuranceFormSubmissionFeature(InsuranceFormSubmissionFeature.FixtureData fixtureData, N2NTest_XUnitAssemblyFixture assemblyFixture, Xunit.Abstractions.ITestOutputHelper testOutputHelper)
         {
             this._testOutputHelper = testOutputHelper;
             this.TestInitialize();
@@ -40,7 +40,7 @@ namespace N2NTest.Feature
         public static void FeatureSetup()
         {
             testRunner = TechTalk.SpecFlow.TestRunnerManager.GetTestRunner();
-            TechTalk.SpecFlow.FeatureInfo featureInfo = new TechTalk.SpecFlow.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Feature", "Register a user at Shoptester", null, ProgrammingLanguage.CSharp, featureTags);
+            TechTalk.SpecFlow.FeatureInfo featureInfo = new TechTalk.SpecFlow.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Feature", "Insurance Form Submission", null, ProgrammingLanguage.CSharp, featureTags);
             testRunner.OnFeatureStart(featureInfo);
         }
         
@@ -75,21 +75,30 @@ namespace N2NTest.Feature
             testRunner.CollectScenarioErrors();
         }
         
+        public virtual void FeatureBackground()
+        {
+#line 3
+    #line hidden
+#line 4
+        testRunner.Given("I am on the dynamic form page", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+#line hidden
+        }
+        
         void System.IDisposable.Dispose()
         {
             this.TestTearDown();
         }
         
-        [Xunit.SkippableFactAttribute(DisplayName="Open register form")]
-        [Xunit.TraitAttribute("FeatureTitle", "Register a user at Shoptester")]
-        [Xunit.TraitAttribute("Description", "Open register form")]
-        public void OpenRegisterForm()
+        [Xunit.SkippableFactAttribute(DisplayName="Submit an ongoing insurance claim")]
+        [Xunit.TraitAttribute("FeatureTitle", "Insurance Form Submission")]
+        [Xunit.TraitAttribute("Description", "Submit an ongoing insurance claim")]
+        public void SubmitAnOngoingInsuranceClaim()
         {
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Open register form", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 3
-this.ScenarioInitialize(scenarioInfo);
+            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Submit an ongoing insurance claim", null, tagsOfScenario, argumentsOfScenario, featureTags);
+#line 6
+    this.ScenarioInitialize(scenarioInfo);
 #line hidden
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -98,17 +107,35 @@ this.ScenarioInitialize(scenarioInfo);
             else
             {
                 this.ScenarioStart();
-#line 4
-    testRunner.Given("I am on Shoptester homepage", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 5
-    testRunner.And("I see the \"Register\" button", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 6
-    testRunner.When("I click on the \"Register\" button", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+#line 3
+    this.FeatureBackground();
 #line hidden
 #line 7
-    testRunner.Then("I should see the registration form", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+        testRunner.When("I select \"Försäkringsärenden\" as the company type", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+#line hidden
+#line 8
+        testRunner.And("I fill in the customer name as \"Insurance Claimant\"", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+#line hidden
+#line 9
+        testRunner.And("I fill in the email as \"claim@example.com\"", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+#line hidden
+#line 10
+        testRunner.And("I select \"Hemförsäkring\" as the insurance type", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+#line hidden
+#line 11
+        testRunner.And("I select \"Pågående skadeärende\" as the issue type", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+#line hidden
+#line 12
+        testRunner.And("I enter \"I want to check the status of my ongoing claim #12345.\" as the message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+#line hidden
+#line 13
+        testRunner.And("I submit the form", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+#line hidden
+#line 14
+        testRunner.Then("I should see a success message", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+#line hidden
+#line 15
+        testRunner.And("I should receive a chat link via email", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
             }
             this.ScenarioCleanup();
@@ -121,12 +148,12 @@ this.ScenarioInitialize(scenarioInfo);
             
             public FixtureData()
             {
-                RegisterAUserAtShoptesterFeature.FeatureSetup();
+                InsuranceFormSubmissionFeature.FeatureSetup();
             }
             
             void System.IDisposable.Dispose()
             {
-                RegisterAUserAtShoptesterFeature.FeatureTearDown();
+                InsuranceFormSubmissionFeature.FeatureTearDown();
             }
         }
     }
