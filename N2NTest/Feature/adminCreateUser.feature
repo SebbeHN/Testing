@@ -1,3 +1,4 @@
+@admin
 Feature: Admin User Management
 
     Scenario: Admin creates a new staff user

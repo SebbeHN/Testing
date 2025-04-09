@@ -108,7 +108,7 @@ namespace N2NTest.Feature
         testRunner.When("I navigate to the staff dashboard", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line hidden
 #line 7
-        testRunner.And("I open the chat with the pending request", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+        testRunner.And("I open the chat with the pending request by clicking Öppna chatt", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
 #line 8
         testRunner.And("I send a message \"How can I help you today?\"", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
