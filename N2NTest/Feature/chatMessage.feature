@@ -1,9 +1,11 @@
 Feature: Chat Functionality
+As a staff member
+I want to respond to a customer's chat request
+So that I can provide support directly through the dashboard
 
-    Scenario: Staff responds to customer chat
-        Given I am logged in as a staff member
-        And there is a pending chat request from a customer
-        When I navigate to the staff dashboard
-        And I open the chat with the pending request by clicking Öppna chatt
-        And I send a message "How can I help you today?"
-        Then the message should appear in the chat window
+    Scenario: Staff responds to a chat request
+        Given I click on a ticket on öppna chatt
+        When I write a response in the chat
+        And I click on the send button
+        Then I should see my response in the chat
+

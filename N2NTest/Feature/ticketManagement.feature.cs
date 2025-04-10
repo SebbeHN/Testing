@@ -80,14 +80,14 @@ namespace N2NTest.Feature
             this.TestTearDown();
         }
         
-        [Xunit.SkippableFactAttribute(DisplayName="Staff moves ticket to \"My Tasks\"")]
+        [Xunit.SkippableFactAttribute(DisplayName="Staff user moves a ticket through the workflow")]
         [Xunit.TraitAttribute("FeatureTitle", "Staff Dashboard")]
-        [Xunit.TraitAttribute("Description", "Staff moves ticket to \"My Tasks\"")]
-        public void StaffMovesTicketToMyTasks()
+        [Xunit.TraitAttribute("Description", "Staff user moves a ticket through the workflow")]
+        public void StaffUserMovesATicketThroughTheWorkflow()
         {
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Staff moves ticket to \"My Tasks\"", null, tagsOfScenario, argumentsOfScenario, featureTags);
+            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Staff user moves a ticket through the workflow", null, tagsOfScenario, argumentsOfScenario, featureTags);
 #line 3
     this.ScenarioInitialize(scenarioInfo);
 #line hidden
@@ -99,16 +99,25 @@ namespace N2NTest.Feature
             {
                 this.ScenarioStart();
 #line 4
-        testRunner.Given("I am logged in as a staff member", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
+        testRunner.Given("I am logged in as staff", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
 #line hidden
 #line 5
-        testRunner.When("I navigate to the staff dashboard", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+        testRunner.And("I navigate to the staff dashboard", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
 #line 6
-        testRunner.And("I drag a ticket from \"Ärenden\" to \"Mina ärenden\"", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+        testRunner.And("I see a ticket in the \"Ärenden\" column", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
 #line 7
-        testRunner.Then("the ticket should appear in the \"Mina ärenden\" column", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+        testRunner.When("I drag the ticket to the \"Mina ärenden\" column", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
+#line hidden
+#line 8
+        testRunner.And("I drag the same ticket to the \"Klara\" column", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+#line hidden
+#line 9
+        testRunner.Then("the ticket should appear in the \"Klara\" column", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+#line hidden
+#line 10
+        testRunner.And("the ticket should not appear in the \"Ärenden\" or \"Mina ärenden\" columns", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
             }
             this.ScenarioCleanup();

@@ -1,5 +1,3 @@
-namespace N2NTest.Steps;
-
 using Microsoft.Playwright;
 using N2NTest.Helpers;
 using TechTalk.SpecFlow;
@@ -7,15 +5,16 @@ using Xunit;
 using System;
 using System.Threading.Tasks;
 
+namespace N2NTest.Steps;
+
 [Binding]
 [Scope(Feature = "Chat Functionality")]
 public class ChatFunctionalitySteps
 {
-    private IPlaywright? _playwright;
-    private IBrowser? _browser;
-    private IBrowserContext? _context;
-    private IPage? _page;
-    private string? _messageText;
+    private IPlaywright _playwright;
+    private IBrowser _browser;
+    private IBrowserContext _context;
+    private IPage _page;
 
     [BeforeScenario]
     public async Task Setup()
@@ -29,58 +28,52 @@ public class ChatFunctionalitySteps
     [AfterScenario]
     public async Task Teardown()
     {
-        if (_browser != null) await _browser.CloseAsync();
+        if (_browser is not null)
+            await _browser.CloseAsync();
+
         _playwright?.Dispose();
     }
 
-    private async Task WaitForPageToLoad()
-    {
-        if (_page == null) throw new InvalidOperationException("Page is not initialized");
-        await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        await Task.Delay(1000);
-    }
-
-    [Given(@"I am logged in as a staff member")]
-    public async Task GivenIAmLoggedInAsAStaffMember()
-    {
-        if (_page == null) throw new InvalidOperationException("Page is not initialized");
-        await LoginHelper.LoginAsRole(_page, "staff");
-        await WaitForPageToLoad();
-    }
-
-    [Given(@"there is a pending chat request from a customer")]
-    public async Task GivenThereIsPendingChatRequest()
-    {
-        await Task.Delay(500); // Simulerad väntan – justera som behövs
-    }
-
-    [When(@"I navigate to the staff dashboard")]
-    public async Task WhenINavigateToTheStaffDashboard()
+    [Given("I click on a ticket on öppna chatt")]
+    public async Task GivenIClickOnATicketOnOppnaChatt()
     {
         await _page.GotoAsync("http://localhost:3001/staff/dashboard");
-        await WaitForPageToLoad();
+
+        // Logga in som staff
+        await LoginHelper.LoginAsRole(_page, "staff");
+
+        // Vänta in ticket-länkar
+        await _page.WaitForSelectorAsync("div.ticket-task-token a");
+
+        // Klicka första "Öppna chatt"-länken utan att navigera bort
+        var chatLink = _page.Locator("div.ticket-task-token a").First;
+        await _page.EvaluateAsync(@"(element) => {
+            element.addEventListener('click', e => e.preventDefault(), { once: true });
+            element.click();
+        }", await chatLink.ElementHandleAsync());
+
+        // Vänta in modalen
+        await _page.WaitForSelectorAsync(".chat-modal", new() { Timeout = 5000 });
     }
 
-    [When(@"I open the chat with the pending request by clicking Öppna chatt")]
-    public async Task WhenIOpenTheChat()
+    [When("I write a response in the chat")]
+    public async Task WhenIWriteAResponseInTheChat()
     {
-        await _page.ClickAsync("text=Öppna chatt");
-        await WaitForPageToLoad();
+        await _page.FillAsync(".chat-modal__input-field", "Vad kan jag hjälpa dig med?");
     }
 
-    [When(@"I send a message ""(.*)""")]
-    public async Task WhenISendAMessage(string message)
+    [When("I click on the send button")]
+    public async Task WhenIClickOnTheSendButton()
     {
-        _messageText = message;
-        await _page.FillAsync("textarea", message);
-        await _page.ClickAsync("button:has-text('Send')");
-        await Task.Delay(500);
+        await _page.ClickAsync(".chat-modal__send-button");
     }
 
-    [Then(@"the message should appear in the chat window")]
-    public async Task ThenMessageShouldAppear()
+    [Then("I should see my response in the chat")]
+    public async Task ThenIShouldSeeMyResponseInTheChat()
     {
-        var lastMessage = await _page.InnerTextAsync(".chat-message:last-child");
-        Assert.Contains(_messageText, lastMessage);
+        var messageLocator = _page.Locator(".chat-modal__message-text", new() { HasTextString = "Vad kan jag hjälpa dig med?" });
+        await messageLocator.WaitForAsync(new() { Timeout = 3000 });
+        Assert.True(await messageLocator.IsVisibleAsync(), "Meddelandet syns inte i chatten");
     }
 }
+

@@ -40,7 +40,8 @@ namespace N2NTest.Feature
         public static void FeatureSetup()
         {
             testRunner = TechTalk.SpecFlow.TestRunnerManager.GetTestRunner();
-            TechTalk.SpecFlow.FeatureInfo featureInfo = new TechTalk.SpecFlow.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Feature", "Chat Functionality", null, ProgrammingLanguage.CSharp, featureTags);
+            TechTalk.SpecFlow.FeatureInfo featureInfo = new TechTalk.SpecFlow.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Feature", "Chat Functionality", "As a staff member\nI want to respond to a customer\'s chat request\nSo that I can pr" +
+                    "ovide support directly through the dashboard", ProgrammingLanguage.CSharp, featureTags);
             testRunner.OnFeatureStart(featureInfo);
         }
         
@@ -80,15 +81,15 @@ namespace N2NTest.Feature
             this.TestTearDown();
         }
         
-        [Xunit.SkippableFactAttribute(DisplayName="Staff responds to customer chat")]
+        [Xunit.SkippableFactAttribute(DisplayName="Staff responds to a chat request")]
         [Xunit.TraitAttribute("FeatureTitle", "Chat Functionality")]
-        [Xunit.TraitAttribute("Description", "Staff responds to customer chat")]
-        public void StaffRespondsToCustomerChat()
+        [Xunit.TraitAttribute("Description", "Staff responds to a chat request")]
+        public void StaffRespondsToAChatRequest()
         {
             string[] tagsOfScenario = ((string[])(null));
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Staff responds to customer chat", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 3
+            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("Staff responds to a chat request", null, tagsOfScenario, argumentsOfScenario, featureTags);
+#line 6
     this.ScenarioInitialize(scenarioInfo);
 #line hidden
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
@@ -98,23 +99,17 @@ namespace N2NTest.Feature
             else
             {
                 this.ScenarioStart();
-#line 4
-        testRunner.Given("I am logged in as a staff member", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 5
-        testRunner.And("there is a pending chat request from a customer", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 6
-        testRunner.When("I navigate to the staff dashboard", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
 #line 7
-        testRunner.And("I open the chat with the pending request by clicking Öppna chatt", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+        testRunner.Given("I click on a ticket on öppna chatt", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
 #line hidden
 #line 8
-        testRunner.And("I send a message \"How can I help you today?\"", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+        testRunner.When("I write a response in the chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line hidden
 #line 9
-        testRunner.Then("the message should appear in the chat window", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+        testRunner.And("I click on the send button", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+#line hidden
+#line 10
+        testRunner.Then("I should see my response in the chat", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden
             }
             this.ScenarioCleanup();
