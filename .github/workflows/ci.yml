@@ -33,7 +33,7 @@ jobs:
 
       - name: Initiera databasstruktur
         run: |
-          psql "postgresql://sebastianholmberg:devpass123@localhost:5432/wtp"           -f sql/init.sql
+          psql "postgresql://sebastianholmberg:devpass123@localhost:5432/wtp"           -f WTP-main/sql/init.sql
 
   api_tests_and_seed:
     needs: setup_db
@@ -50,14 +50,14 @@ jobs:
 
       - name: Build backend
         run: |
-          dotnet restore ./server/server.csproj
-          dotnet build ./server/server.csproj
+          dotnet restore ./WTP-main/server/server.csproj
+          dotnet build ./WTP-main/server/server.csproj
 
       - name: Run backend tests (xUnit)
-        run: dotnet test ./server/server.csproj
+        run: dotnet test ./WTP-main/server/server.csproj
 
       - name: Seed testdata
-        run: dotnet run --project ./server/server.csproj seed
+        run: dotnet run --project ./WTP-main/server/server.csproj seed
 
   postman_tests:
     needs: api_tests_and_seed
@@ -75,14 +75,14 @@ jobs:
         run: npm install -g newman
 
       - name: Starta backend
-        run: dotnet run --project ./server/server.csproj &
+        run: dotnet run --project ./WTP-main/server/server.csproj &
 
       - name: Vänta på backend
         run: sleep 10
 
       - name: Kör Postman-tester
         run: |
-          newman run postman/WTP.postman_collection.json             -e postman/WTP_environment.postman_environment.json             --insecure
+          newman run WTP-main/postman/WTP.postman_collection.json             -e WTP-main/postman/WTP_environment.postman_environment.json             --insecure
 
   gui_tests:
     needs: api_tests_and_seed
@@ -98,12 +98,12 @@ jobs:
 
       - name: Installera frontend beroenden
         run: |
-          cd client
+          cd WTP-main/client
           npm install
 
       - name: Starta frontend
         run: |
-          cd client
+          cd WTP-main/client
           npm run dev &
       
       - name: Vänta på frontend
@@ -111,7 +111,7 @@ jobs:
 
       - name: Installera Playwright och kör tester
         run: |
-          cd N2NTest
+          cd WTP-main/N2NTest
           npm ci
           npx playwright install --with-deps
           npx playwright test
