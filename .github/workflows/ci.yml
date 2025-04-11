@@ -1,0 +1,117 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  setup_db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: wtp
+          POSTGRES_USER: sebastianholmberg
+          POSTGRES_PASSWORD: devpass123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checka ut repo
+        uses: actions/checkout@v4
+
+      - name: Installera psql
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Initiera databasstruktur
+        run: |
+          psql "postgresql://sebastianholmberg:devpass123@localhost:5432/wtp"           -f sql/init.sql
+
+  api_tests_and_seed:
+    needs: setup_db
+    runs-on: ubuntu-latest
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build backend
+        run: |
+          dotnet restore ./server/server.csproj
+          dotnet build ./server/server.csproj
+
+      - name: Run backend tests (xUnit)
+        run: dotnet test ./server/server.csproj
+
+      - name: Seed testdata
+        run: dotnet run --project ./server/server.csproj seed
+
+  postman_tests:
+    needs: api_tests_and_seed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checka ut repo
+        uses: actions/checkout@v4
+
+      - name: Installera Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Installera Newman
+        run: npm install -g newman
+
+      - name: Starta backend
+        run: dotnet run --project ./server/server.csproj &
+
+      - name: Vänta på backend
+        run: sleep 10
+
+      - name: Kör Postman-tester
+        run: |
+          newman run postman/WTP.postman_collection.json             -e postman/WTP_environment.postman_environment.json             --insecure
+
+  gui_tests:
+    needs: api_tests_and_seed
+    runs-on: ubuntu-latest
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Installera frontend beroenden
+        run: |
+          cd client
+          npm install
+
+      - name: Starta frontend
+        run: |
+          cd client
+          npm run dev &
+      
+      - name: Vänta på frontend
+        run: sleep 10
+
+      - name: Installera Playwright och kör tester
+        run: |
+          cd N2NTest
+          npm ci
+          npx playwright install --with-deps
+          npx playwright test
