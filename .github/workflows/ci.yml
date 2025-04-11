@@ -33,7 +33,7 @@ jobs:
 
       - name: Initiera databasstruktur
         run: |
-          psql "postgresql://sebastianholmberg:devpass123@localhost:5432/wtp"           -f WTP-main/sql/init.sql
+          psql "postgresql://sebastianholmberg:devpass123@localhost:5432/wtp"           -f sql/init.sql
 
   api_tests_and_seed:
     needs: setup_db
@@ -48,13 +48,11 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Build backend
+      - name: Bygg och kör tester (xUnit)
         run: |
-          dotnet restore ./WTP-main/server/server.csproj
-          dotnet build ./WTP-main/server/server.csproj
-
-      - name: Run backend tests (xUnit)
-        run: dotnet test ./WTP-main/server/server.csproj
+          dotnet restore ./WTP-main/server.Tests/server.Tests.csproj
+          dotnet build ./WTP-main/server.Tests/server.Tests.csproj
+          dotnet test ./WTP-main/server.Tests/server.Tests.csproj
 
       - name: Seed testdata
         run: dotnet run --project ./WTP-main/server/server.csproj seed
@@ -82,7 +80,7 @@ jobs:
 
       - name: Kör Postman-tester
         run: |
-          newman run WTP-main/postman/WTP.postman_collection.json             -e WTP-main/postman/WTP_environment.postman_environment.json             --insecure
+          newman run postman/WTP.postman_collection.json             -e postman/WTP_environment.postman_environment.json             --insecure
 
   gui_tests:
     needs: api_tests_and_seed
@@ -96,22 +94,22 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Installera frontend beroenden
+      - name: Installera Playwright-tester
         run: |
-          cd WTP-main/client
-          npm install
+          cd WTP-main/N2N
+          npm ci
+          npx playwright install --with-deps
 
       - name: Starta frontend
         run: |
           cd WTP-main/client
+          npm install
           npm run dev &
-      
+
       - name: Vänta på frontend
         run: sleep 10
 
-      - name: Installera Playwright och kör tester
+      - name: Kör GUI-tester
         run: |
-          cd WTP-main/N2NTest
-          npm ci
-          npx playwright install --with-deps
+          cd WTP-main/N2N
           npx playwright test
