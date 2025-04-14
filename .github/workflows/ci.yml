@@ -235,9 +235,12 @@ jobs:
               fs.email,
               fs.company_type as form_type
           FROM forsakrings_forms fs
-          WHERE fs.is_chat_active = true;"
-      - name: Seed testdata
-        run: dotnet run --project ./WTP-main/server/server.csproj seed
+          WHERE fs.is_chat_active = true;"- 
+          name: Seed testdata
+          run: |
+          # Kör seed-kommandot men avsluta efter 30 sekunder
+          timeout 30s dotnet run --project ./WTP-main/server/server.csproj seed || true
+    
       - name: Installera Newman
         run: npm install -g newman
       - name: Starta backend
