@@ -1,13 +1,24 @@
 name: CI/CD Pipeline
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-
 jobs:
   setup_db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checka ut repo
+        uses: actions/checkout@v4
+      - name: Installera psql
+        run: sudo apt-get install -y postgresql-client
+      - name: Initiera databasstruktur
+        run: |
+          # Vi kommer använda databasen i andra job istället
+          echo "Database initialization will be handled in the test job"
+
+  api_tests_and_seed:
+    needs: setup_db
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -23,92 +34,127 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
-    steps:
-      - name: Checka ut repo
-        uses: actions/checkout@v4
-
-      - name: Installera psql
-        run: sudo apt-get install -y postgresql-client
-
-      - name: Initiera databasstruktur
-        run: |
-          psql "postgresql://sebastianholmberg:devpass123@localhost:5432/wtp"           -f sql/init.sql
-
-  api_tests_and_seed:
-    needs: setup_db
-    runs-on: ubuntu-latest
     env:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.0.x'
-
+      - name: Initiera databasstruktur
+        run: |
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
       - name: Bygg och kör tester (xUnit)
         run: |
           dotnet restore ./WTP-main/server.Tests/server.Tests.csproj
           dotnet build ./WTP-main/server.Tests/server.Tests.csproj
           dotnet test ./WTP-main/server.Tests/server.Tests.csproj
-
       - name: Seed testdata
         run: dotnet run --project ./WTP-main/server/server.csproj seed
 
   postman_tests:
     needs: api_tests_and_seed
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: wtp
+          POSTGRES_USER: sebastianholmberg
+          POSTGRES_PASSWORD: devpass123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123
     steps:
       - name: Checka ut repo
         uses: actions/checkout@v4
-
       - name: Installera Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-
+      - name: Installera dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      - name: Installera psql
+        run: sudo apt-get install -y postgresql-client
+      - name: Initiera databasstruktur
+        run: |
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+      - name: Seed testdata
+        run: dotnet run --project ./WTP-main/server/server.csproj seed
       - name: Installera Newman
         run: npm install -g newman
-
       - name: Starta backend
         run: dotnet run --project ./WTP-main/server/server.csproj &
-
       - name: Vänta på backend
         run: sleep 10
-
       - name: Kör Postman-tester
         run: |
-          newman run postman/WTP.postman_collection.json             -e postman/WTP_environment.postman_environment.json             --insecure
+          newman run postman/WTP.postman_collection.json \
+            -e postman/WTP_environment.postman_environment.json \
+            --insecure
 
   gui_tests:
     needs: api_tests_and_seed
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: wtp
+          POSTGRES_USER: sebastianholmberg
+          POSTGRES_PASSWORD: devpass123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
-
+      - name: Installera dotnet
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      - name: Installera psql
+        run: sudo apt-get install -y postgresql-client
+      - name: Initiera databasstruktur
+        run: |
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+      - name: Seed testdata
+        run: dotnet run --project ./WTP-main/server/server.csproj seed
       - name: Installera Playwright-tester
         run: |
           cd WTP-main/N2N
           npm ci
           npx playwright install --with-deps
-
+      - name: Starta backend
+        run: dotnet run --project ./WTP-main/server/server.csproj &
+      - name: Vänta på backend
+        run: sleep 5
       - name: Starta frontend
         run: |
           cd WTP-main/client
           npm install
           npm run dev &
-
       - name: Vänta på frontend
         run: sleep 10
-
       - name: Kör GUI-tester
         run: |
           cd WTP-main/N2N
