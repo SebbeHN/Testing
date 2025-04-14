@@ -31,25 +31,17 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Installera psql
         run: sudo apt-get install -y postgresql-client
-      - name: Verifiera databasåtkomst
-        run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "SELECT 1"
-      - name: Ge rättigheter
-        run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "ALTER USER sebastianholmberg WITH SUPERUSER;"
-      - name: Listning av filer
-        run: |
-          ls -la
-          ls -la sql/ || echo "sql directory not found"
       - name: Initiera databasstruktur
         run: |
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f ${{ github.workspace }}/sql/init.sql || echo "Failed to run init.sql"
-      - name: Bygg och kör tester (xUnit) med diagnostik
+      - name: Ändra anslutningssträngar i testfiler
         run: |
-          cd ${{ github.workspace }}
-          dotnet restore WTP-main/server.Tests/server.Tests.csproj
-          dotnet build WTP-main/server.Tests/server.Tests.csproj
-          dotnet test WTP-main/server.Tests/server.Tests.csproj --verbosity detailed
+          find ./WTP-main/server.Tests -name "*.cs" -type f -exec sed -i 's/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;";/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123";/g' {} \;
+      - name: Bygg och kör tester (xUnit)
+        run: |
+          dotnet restore ./WTP-main/server.Tests/server.Tests.csproj
+          dotnet build ./WTP-main/server.Tests/server.Tests.csproj
+          dotnet test ./WTP-main/server.Tests/server.Tests.csproj
       - name: Seed testdata
         run: dotnet run --project ./WTP-main/server/server.csproj seed
 
@@ -86,9 +78,6 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Installera psql
         run: sudo apt-get install -y postgresql-client
-      - name: Verifiera databasåtkomst
-        run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "SELECT 1"
       - name: Initiera databasstruktur
         run: |
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f ${{ github.workspace }}/sql/init.sql
@@ -137,9 +126,6 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Installera psql
         run: sudo apt-get install -y postgresql-client
-      - name: Verifiera databasåtkomst
-        run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "SELECT 1"
       - name: Initiera databasstruktur
         run: |
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f ${{ github.workspace }}/sql/init.sql
