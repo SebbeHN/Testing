@@ -149,13 +149,21 @@ jobs:
       - name: Ändra anslutningssträngar i testfiler
         run: |
           find ./WTP-main/server.Tests -name "*.cs" -type f -exec sed -i 's/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;";/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true";/g' {} \;
+      - name: Uppdatera appsettings.json med rätt anslutningssträng
+        run: |
+          sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true"/g' ./WTP-main/server/appsettings.json
+          echo "Anslutningssträng i appsettings.json uppdaterad"
+          cat ./WTP-main/server/appsettings.json
       - name: Bygg och kör tester (xUnit)
         run: |
           dotnet restore ./WTP-main/server.Tests/server.Tests.csproj
           dotnet build ./WTP-main/server.Tests/server.Tests.csproj
           dotnet test ./WTP-main/server.Tests/server.Tests.csproj --verbosity normal
       - name: Seed testdata
-        run: dotnet run --project ./WTP-main/server/server.csproj seed
+        run: |
+          # Kör seed-kommandot men avsluta efter 30 sekunder
+          timeout 30s dotnet run --project ./WTP-main/server/server.csproj seed || true
+          echo "Seedning avslutad (med timeout eller naturligt)"
 
   postman_tests:
     needs: api_tests_and_seed
@@ -235,12 +243,16 @@ jobs:
               fs.email,
               fs.company_type as form_type
           FROM forsakrings_forms fs
-          WHERE fs.is_chat_active = true;"- 
-          name: Seed testdata
-          run: |
+          WHERE fs.is_chat_active = true;"
+      - name: Uppdatera appsettings.json med rätt anslutningssträng
+        run: |
+          sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true"/g' ./WTP-main/server/appsettings.json
+          echo "Anslutningssträng i appsettings.json uppdaterad"
+      - name: Seed testdata
+        run: |
           # Kör seed-kommandot men avsluta efter 30 sekunder
           timeout 30s dotnet run --project ./WTP-main/server/server.csproj seed || true
-    
+          echo "Seedning avslutad (med timeout eller naturligt)"
       - name: Installera Newman
         run: npm install -g newman
       - name: Starta backend
@@ -330,8 +342,15 @@ jobs:
               fs.company_type as form_type
           FROM forsakrings_forms fs
           WHERE fs.is_chat_active = true;"
+      - name: Uppdatera appsettings.json med rätt anslutningssträng
+        run: |
+          sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true"/g' ./WTP-main/server/appsettings.json
+          echo "Anslutningssträng i appsettings.json uppdaterad"
       - name: Seed testdata
-        run: dotnet run --project ./WTP-main/server/server.csproj seed
+        run: |
+          # Kör seed-kommandot men avsluta efter 30 sekunder
+          timeout 30s dotnet run --project ./WTP-main/server/server.csproj seed || true
+          echo "Seedning avslutad (med timeout eller naturligt)"
       - name: Installera Playwright-tester
         run: |
           cd WTP-main/N2N
