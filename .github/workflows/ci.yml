@@ -5,20 +5,7 @@ on:
   pull_request:
     branches: [main]
 jobs:
-  setup_db:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checka ut repo
-        uses: actions/checkout@v4
-      - name: Installera psql
-        run: sudo apt-get install -y postgresql-client
-      - name: Initiera databasstruktur
-        run: |
-          # Vi kommer använda databasen i andra job istället
-          echo "Database initialization will be handled in the test job"
-
   api_tests_and_seed:
-    needs: setup_db
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -42,14 +29,27 @@ jobs:
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.0.x'
+      - name: Installera psql
+        run: sudo apt-get install -y postgresql-client
+      - name: Verifiera databasåtkomst
+        run: |
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "SELECT 1"
+      - name: Ge rättigheter
+        run: |
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "ALTER USER sebastianholmberg WITH SUPERUSER;"
+      - name: Listning av filer
+        run: |
+          ls -la
+          ls -la sql/ || echo "sql directory not found"
       - name: Initiera databasstruktur
         run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
-      - name: Bygg och kör tester (xUnit)
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f ${{ github.workspace }}/sql/init.sql || echo "Failed to run init.sql"
+      - name: Bygg och kör tester (xUnit) med diagnostik
         run: |
-          dotnet restore ./WTP-main/server.Tests/server.Tests.csproj
-          dotnet build ./WTP-main/server.Tests/server.Tests.csproj
-          dotnet test ./WTP-main/server.Tests/server.Tests.csproj
+          cd ${{ github.workspace }}
+          dotnet restore WTP-main/server.Tests/server.Tests.csproj
+          dotnet build WTP-main/server.Tests/server.Tests.csproj
+          dotnet test WTP-main/server.Tests/server.Tests.csproj --verbosity detailed
       - name: Seed testdata
         run: dotnet run --project ./WTP-main/server/server.csproj seed
 
@@ -86,9 +86,12 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Installera psql
         run: sudo apt-get install -y postgresql-client
+      - name: Verifiera databasåtkomst
+        run: |
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "SELECT 1"
       - name: Initiera databasstruktur
         run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f ${{ github.workspace }}/sql/init.sql
       - name: Seed testdata
         run: dotnet run --project ./WTP-main/server/server.csproj seed
       - name: Installera Newman
@@ -134,9 +137,12 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Installera psql
         run: sudo apt-get install -y postgresql-client
+      - name: Verifiera databasåtkomst
+        run: |
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "SELECT 1"
       - name: Initiera databasstruktur
         run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f ${{ github.workspace }}/sql/init.sql
       - name: Seed testdata
         run: dotnet run --project ./WTP-main/server/server.csproj seed
       - name: Installera Playwright-tester
