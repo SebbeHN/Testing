@@ -5,7 +5,76 @@ on:
   pull_request:
     branches: [main]
 jobs:
+  setup_db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: wtp
+          POSTGRES_USER: sebastianholmberg
+          POSTGRES_PASSWORD: devpass123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checka ut repo
+        uses: actions/checkout@v4
+      - name: Installera psql
+        run: sudo apt-get install -y postgresql-client
+      - name: Initiera databasstruktur
+        run: |
+          # Kör grundläggande schemadefiniton från init.sql
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+          
+          # Lägg till nödvändiga data i role-tabellen
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+          -- Säkerställ att roller finns
+          INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;
+          
+          -- Skapa vyn initial_form_messages
+          CREATE OR REPLACE VIEW initial_form_messages AS
+          SELECT
+              tf.chat_token,
+              tf.message,
+              tf.first_name as sender,
+              tf.submitted_at,
+              tf.issue_type,
+              tf.email,
+              tf.company_type as form_type
+          FROM tele_forms tf
+          WHERE tf.is_chat_active = true
+          UNION ALL
+          SELECT
+              ff.chat_token,
+              ff.message,
+              ff.first_name as sender,
+              ff.submitted_at,
+              ff.issue_type,
+              ff.email,
+              ff.company_type as form_type
+          FROM fordon_forms ff
+          WHERE ff.is_chat_active = true
+          UNION ALL
+          SELECT
+              fs.chat_token,
+              fs.message,
+              fs.first_name as sender,
+              fs.submitted_at,
+              fs.issue_type,
+              fs.email,
+              fs.company_type as form_type
+          FROM forsakrings_forms fs
+          WHERE fs.is_chat_active = true;"
+
   api_tests_and_seed:
+    needs: setup_db
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -23,7 +92,7 @@ jobs:
           --health-retries 5
     env:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v3
@@ -31,17 +100,60 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Installera psql
         run: sudo apt-get install -y postgresql-client
-      - name: Initiera databasstruktur
+      - name: Initiera databasstruktur (samma som setup_db)
         run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f ${{ github.workspace }}/sql/init.sql || echo "Failed to run init.sql"
+          # Kör grundläggande schemadefiniton från init.sql
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+          
+          # Lägg till nödvändiga data i role-tabellen
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+          -- Säkerställ att roller finns
+          INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;
+          
+          -- Skapa vyn initial_form_messages
+          CREATE OR REPLACE VIEW initial_form_messages AS
+          SELECT
+              tf.chat_token,
+              tf.message,
+              tf.first_name as sender,
+              tf.submitted_at,
+              tf.issue_type,
+              tf.email,
+              tf.company_type as form_type
+          FROM tele_forms tf
+          WHERE tf.is_chat_active = true
+          UNION ALL
+          SELECT
+              ff.chat_token,
+              ff.message,
+              ff.first_name as sender,
+              ff.submitted_at,
+              ff.issue_type,
+              ff.email,
+              ff.company_type as form_type
+          FROM fordon_forms ff
+          WHERE ff.is_chat_active = true
+          UNION ALL
+          SELECT
+              fs.chat_token,
+              fs.message,
+              fs.first_name as sender,
+              fs.submitted_at,
+              fs.issue_type,
+              fs.email,
+              fs.company_type as form_type
+          FROM forsakrings_forms fs
+          WHERE fs.is_chat_active = true;"
       - name: Ändra anslutningssträngar i testfiler
         run: |
-          find ./WTP-main/server.Tests -name "*.cs" -type f -exec sed -i 's/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;";/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123";/g' {} \;
+          find ./WTP-main/server.Tests -name "*.cs" -type f -exec sed -i 's/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;";/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true";/g' {} \;
       - name: Bygg och kör tester (xUnit)
         run: |
           dotnet restore ./WTP-main/server.Tests/server.Tests.csproj
           dotnet build ./WTP-main/server.Tests/server.Tests.csproj
-          dotnet test ./WTP-main/server.Tests/server.Tests.csproj
+          dotnet test ./WTP-main/server.Tests/server.Tests.csproj --verbosity normal
       - name: Seed testdata
         run: dotnet run --project ./WTP-main/server/server.csproj seed
 
@@ -64,7 +176,7 @@ jobs:
           --health-retries 5
     env:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true
     steps:
       - name: Checka ut repo
         uses: actions/checkout@v4
@@ -78,9 +190,52 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Installera psql
         run: sudo apt-get install -y postgresql-client
-      - name: Initiera databasstruktur
+      - name: Initiera databasstruktur (samma som setup_db)
         run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f ${{ github.workspace }}/sql/init.sql
+          # Kör grundläggande schemadefiniton från init.sql
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+          
+          # Lägg till nödvändiga data i role-tabellen
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+          -- Säkerställ att roller finns
+          INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;
+          
+          -- Skapa vyn initial_form_messages
+          CREATE OR REPLACE VIEW initial_form_messages AS
+          SELECT
+              tf.chat_token,
+              tf.message,
+              tf.first_name as sender,
+              tf.submitted_at,
+              tf.issue_type,
+              tf.email,
+              tf.company_type as form_type
+          FROM tele_forms tf
+          WHERE tf.is_chat_active = true
+          UNION ALL
+          SELECT
+              ff.chat_token,
+              ff.message,
+              ff.first_name as sender,
+              ff.submitted_at,
+              ff.issue_type,
+              ff.email,
+              ff.company_type as form_type
+          FROM fordon_forms ff
+          WHERE ff.is_chat_active = true
+          UNION ALL
+          SELECT
+              fs.chat_token,
+              fs.message,
+              fs.first_name as sender,
+              fs.submitted_at,
+              fs.issue_type,
+              fs.email,
+              fs.company_type as form_type
+          FROM forsakrings_forms fs
+          WHERE fs.is_chat_active = true;"
       - name: Seed testdata
         run: dotnet run --project ./WTP-main/server/server.csproj seed
       - name: Installera Newman
@@ -114,7 +269,7 @@ jobs:
           --health-retries 5
     env:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v3
@@ -126,9 +281,52 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Installera psql
         run: sudo apt-get install -y postgresql-client
-      - name: Initiera databasstruktur
+      - name: Initiera databasstruktur (samma som setup_db)
         run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f ${{ github.workspace }}/sql/init.sql
+          # Kör grundläggande schemadefiniton från init.sql
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+          
+          # Lägg till nödvändiga data i role-tabellen
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+          -- Säkerställ att roller finns
+          INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;
+          
+          -- Skapa vyn initial_form_messages
+          CREATE OR REPLACE VIEW initial_form_messages AS
+          SELECT
+              tf.chat_token,
+              tf.message,
+              tf.first_name as sender,
+              tf.submitted_at,
+              tf.issue_type,
+              tf.email,
+              tf.company_type as form_type
+          FROM tele_forms tf
+          WHERE tf.is_chat_active = true
+          UNION ALL
+          SELECT
+              ff.chat_token,
+              ff.message,
+              ff.first_name as sender,
+              ff.submitted_at,
+              ff.issue_type,
+              ff.email,
+              ff.company_type as form_type
+          FROM fordon_forms ff
+          WHERE ff.is_chat_active = true
+          UNION ALL
+          SELECT
+              fs.chat_token,
+              fs.message,
+              fs.first_name as sender,
+              fs.submitted_at,
+              fs.issue_type,
+              fs.email,
+              fs.company_type as form_type
+          FROM forsakrings_forms fs
+          WHERE fs.is_chat_active = true;"
       - name: Seed testdata
         run: dotnet run --project ./WTP-main/server/server.csproj seed
       - name: Installera Playwright-tester
