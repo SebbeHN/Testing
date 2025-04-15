@@ -66,9 +66,11 @@ public class AdminDeleteUserSteps
     [Then(@"the user with email ""(.*)"" should no longer be visible")]
     public async Task ThenUserShouldBeGone(string email)
     {
-        var row = _page.Locator("table tr").Filter(new() { HasTextString = email });
-        var count = await row.CountAsync();
+        await _page.ReloadAsync();
 
-        Assert.Equal(0, count);
+        var rows = await _page.Locator("table tr").Filter(new() { HasText = email }).CountAsync();
+
+        Assert.Equal(0, rows);
     }
+
 }

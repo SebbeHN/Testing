@@ -426,21 +426,20 @@ public async Task WhenISelectAsTheCompany(string company)
         }
     }
     
-    [Then(@"användaren med e-post ""(.*)"" ska synas i listan")]
+    [Then(@"the user with email ""(.*)"" should be visible")]
     public async Task ThenTheUserWithEmailShouldBeVisible(string email)
     {
-        // Uppdatera sidan efter användaren skapats
         await _page.ReloadAsync();
 
-        // Vänta tills raden med e-postadressen finns i tabellen
         try
         {
             await _page.Locator("table tr").Filter(new() { HasText = email }).WaitForAsync(new() { Timeout = 15000 });
         }
         catch (TimeoutException)
         {
-            throw new Exception($"❌ Användaren med e-post '{email}' kunde inte hittas i tabellen efter 15 sekunder.");
+            throw new Exception($"❌ Användaren med e-post '{email}' kunde inte hittas i tabellen.");
         }
     }
+
 
 }

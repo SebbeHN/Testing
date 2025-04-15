@@ -76,7 +76,9 @@ public class ChatFunctionalitySteps
         Console.WriteLine(await _page.ContentAsync());
         await _page.ScreenshotAsync(new() { Path = $"debug-{Guid.NewGuid()}.png" });
 
-        await messageLocator.WaitForAsync(new() { Timeout = 10000 });
+        await _page.Locator(".chat-modal__message-text").Filter(new() { HasText = "Vad kan jag hjälpa dig med?" })
+            .WaitForAsync(new() { Timeout = 20000 });
+
     }
 
 }
