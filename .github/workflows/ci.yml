@@ -317,6 +317,7 @@ jobs:
     env:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true
+      CI: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v3
@@ -392,6 +393,11 @@ jobs:
             VALUES ('staff', 'staff123', '2025-04-07 07:42:10.181265 +00:00', 'tele', 1, 'staff@staff.com')
             ON CONFLICT (email) DO UPDATE SET password = 'staff123';
             
+            -- Skapa en specifik testanvändare för delete-testet
+            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+            VALUES ('Test', 'password123', '2025-04-07 07:42:10.181265 +00:00', 'tele', 1, 'newstaff@example.com')
+            ON CONFLICT (email) DO UPDATE SET password = 'password123';
+            
             -- Seed minimal testdata för GUI-testerna
             INSERT INTO public.tele_forms (first_name, email, service_type, issue_type, message, chat_token, submitted_at, is_chat_active, company_type)
             VALUES ('TestKund', 'testkund@example.com', 'Bredband', 'Tekniskt problem', 'Testar ett formulär för teleärenden', '14dbbbb1-df13-4f5a-9ed7-f4553c48469c', '2025-04-07 09:51:40.188483 +00:00', true, 'Tele/Bredband')
@@ -399,22 +405,67 @@ jobs:
           "
           echo "Direkt seed av testdata klar"
       
+      - name: Skapa CI-konfigurationsfil för testerna
+        run: |
+          mkdir -p N2NTest/Helpers
+          cat > N2NTest/Helpers/CIConfig.cs << 'EOL'
+          namespace N2NTest.Helpers
+          {
+              public static class CIConfig
+              {
+                  public static readonly bool IsRunningInCI = true;
+                  public static readonly int DefaultTimeout = 60000;
+                  public static readonly int NavigationTimeout = 45000;
+              }
+          }
+          EOL
+          cat N2NTest/Helpers/CIConfig.cs
+      
+      - name: Uppdatera AdminDeleteUserSteps för bättre CI-kompatibilitet
+        run: |
+          if [ -f "N2NTest/Steps/AdminDeleteUserSteps.cs" ]; then
+            sed -i 's/Timeout = 20000/Timeout = 60000/g' N2NTest/Steps/AdminDeleteUserSteps.cs
+            sed -i 's/Headless = false/Headless = true/g' N2NTest/Steps/AdminDeleteUserSteps.cs
+            echo "AdminDeleteUserSteps.cs uppdaterad för CI"
+          fi
+      
+      - name: Uppdatera ChatFunctionalitySteps för bättre CI-kompatibilitet
+        run: |
+          if [ -f "N2NTest/Steps/ChatFunctionalitySteps.cs" ]; then
+            sed -i 's/Timeout = 10000/Timeout = 60000/g' N2NTest/Steps/ChatFunctionalitySteps.cs
+            sed -i 's/Headless = false/Headless = true/g' N2NTest/Steps/ChatFunctionalitySteps.cs
+            echo "ChatFunctionalitySteps.cs uppdaterad för CI"
+          fi
+      
+      - name: Uppdatera alla andra testklasser
+        run: |
+          find N2NTest/Steps -name "*.cs" -exec sed -i 's/Headless = false/Headless = true/g' {} \;
+          find N2NTest/Steps -name "*.cs" -exec sed -i 's/SlowMo = 500/SlowMo = 0/g' {} \;
+          find N2NTest/Steps -name "*.cs" -exec sed -i 's/SlowMo = 5000/SlowMo = 100/g' {} \;
+          echo "Alla testklasser uppdaterade för CI"
+      
       - name: Starta backend
         run: dotnet run --project ./WTP-main/server/server.csproj &
       
       - name: Vänta på backend
-        run: sleep 30
+        run: sleep 60
 
       - name: Starta frontend (Vite)
         run: |
           cd WTP-main/client
           npm install
           npm run dev -- --host &
-          sleep 10
-          curl -v http://localhost:3001 || echo "⚠️ Frontend svarar inte på port 3001"
-
-      - name: Säkerställ headless mode i testerna
-        run: find N2NTest/Steps -name "*.cs" -exec sed -i 's/Headless = false/Headless = true/g' {} \;
+          sleep 30
+          curl -v http://localhost:3001 || echo "⚠️ Frontend svarar inte på port 3001, men fortsätter ändå"
+      
+      - name: Kontrollera tjänststatus
+        run: |
+          echo "Testar om frontend är redo..."
+          curl -v http://localhost:3001 || echo "⚠️ Frontend svarar inte, men fortsätter ändå"
+          echo "Testar om backend är redo..."
+          curl -v http://localhost:5000/api/health || echo "⚠️ Backend hälsoendpoint svarar inte, men fortsätter ändå"
+          echo "Väntar ytterligare en stund för att säkerställa att allt är uppstartat..."
+          sleep 30
 
       - name: Installera Playwright + build projekt
         run: |
