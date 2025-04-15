@@ -387,21 +387,25 @@ jobs:
             VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
             ON CONFLICT (email) DO UPDATE SET password = 'admin321';
             
+            -- Skapa staff-användare
+            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+            VALUES ('staff', 'staff123', '2025-04-07 07:42:10.181265 +00:00', 'tele', 1, 'staff@staff.com')
+            ON CONFLICT (email) DO UPDATE SET password = 'staff123';
+            
             -- Seed minimal testdata för GUI-testerna
             INSERT INTO public.tele_forms (first_name, email, service_type, issue_type, message, chat_token, submitted_at, is_chat_active, company_type)
             VALUES ('TestKund', 'testkund@example.com', 'Bredband', 'Tekniskt problem', 'Testar ett formulär för teleärenden', '14dbbbb1-df13-4f5a-9ed7-f4553c48469c', '2025-04-07 09:51:40.188483 +00:00', true, 'Tele/Bredband')
             ON CONFLICT DO NOTHING;
           "
           echo "Direkt seed av testdata klar"
-      - name: Installera Playwright-tester
-        run: |
-          cd WTP-main/N2N
-          npm ci
-          npx playwright install --with-deps
+      
+      # Starta backend från WTP-main
       - name: Starta backend
         run: dotnet run --project ./WTP-main/server/server.csproj &
       - name: Vänta på backend
         run: sleep 30
+      
+      # Starta frontend från WTP-main
       - name: Starta frontend
         run: |
           cd WTP-main/client
@@ -409,7 +413,18 @@ jobs:
           npm run dev &
       - name: Vänta på frontend
         run: sleep 30
+      
+      # Installera Playwright för .NET i N2NTest
+      - name: Installera Playwright för .NET
+        run: |
+          cd N2NTest
+          dotnet restore
+          dotnet build
+          dotnet tool install --global Microsoft.Playwright.CLI
+          playwright install --with-deps
+      
+      # Kör tester från N2NTest
       - name: Kör GUI-tester
         run: |
-          cd WTP-main/N2N
-          npx playwright test
+          cd N2NTest
+          dotnet test
