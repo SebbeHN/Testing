@@ -47,20 +47,17 @@ public class AdminDeleteUserSteps
     [When(@"I delete the user with email ""(.*)""")]
     public async Task WhenIDeleteUserWithEmail(string email)
     {
-        var row = _page.Locator("table tr").Filter(new() { HasTextString = email });
-        await row.WaitForAsync(new() { Timeout = 10000 });
+        var row = _page.Locator("table tr").Filter(new() { HasText = email });
 
-        // Hantera både confirm och alert
-        _page.Dialog += async (_, dialog) =>
-        {
-            Console.WriteLine($"[Dialog] Typ: {dialog.Type} – Meddelande: {dialog.Message}");
-            await Task.Delay(800);
-            await dialog.AcceptAsync();
-        };
+        // 🔍 Debug innan vi väntar
+        Console.WriteLine(await _page.ContentAsync());
+        await _page.ScreenshotAsync(new() { Path = $"debug-{Guid.NewGuid()}.png" });
 
-        var deleteButton = row.Locator("button:has-text('Ta bort')");
-        await Task.Delay(1000); // Paus innan klick
+        await row.WaitForAsync(new() { Timeout = 10000 }); // 👈 detta ska vara kvar!
+    
+        var deleteButton = row.Locator("button", new() { HasTextString = "Ta bort" });
         await deleteButton.ClickAsync();
+    
 
         await _page.WaitForTimeoutAsync(1500); // Paus efter klick
     }

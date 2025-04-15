@@ -68,12 +68,16 @@ public class ChatFunctionalitySteps
         await _page.ClickAsync(".chat-modal__send-button");
     }
 
-    [Then("I should see my response in the chat")]
+    [Then(@"I should see my response in the chat")]
     public async Task ThenIShouldSeeMyResponseInTheChat()
     {
-        var messageLocator = _page.Locator(".chat-modal__message-text", new() { HasTextString = "Vad kan jag hjälpa dig med?" });
-        await messageLocator.WaitForAsync(new() { Timeout = 15000 });
-        Assert.True(await messageLocator.IsVisibleAsync(), "Meddelandet syns inte i chatten");
+        var messageLocator = _page.Locator(".chat-modal__message-text").Filter(new() { HasTextString = "Vad kan jag hjälpa dig med?" });
+
+        Console.WriteLine(await _page.ContentAsync());
+        await _page.ScreenshotAsync(new() { Path = $"debug-{Guid.NewGuid()}.png" });
+
+        await messageLocator.WaitForAsync(new() { Timeout = 10000 });
     }
+
 }
 
