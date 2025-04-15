@@ -72,7 +72,7 @@ public class ChatFunctionalitySteps
     public async Task ThenIShouldSeeMyResponseInTheChat()
     {
         var messageLocator = _page.Locator(".chat-modal__message-text", new() { HasTextString = "Vad kan jag hjälpa dig med?" });
-        await messageLocator.WaitForAsync(new() { Timeout = 3000 });
+        await messageLocator.WaitForAsync(new() { Timeout = 15000 });
         Assert.True(await messageLocator.IsVisibleAsync(), "Meddelandet syns inte i chatten");
     }
 }

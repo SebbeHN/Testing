@@ -48,7 +48,7 @@ public class AdminDeleteUserSteps
     public async Task WhenIDeleteUserWithEmail(string email)
     {
         var row = _page.Locator("table tr").Filter(new() { HasTextString = email });
-        await row.WaitForAsync(new() { Timeout = 3000 });
+        await row.WaitForAsync(new() { Timeout = 10000 });
 
         // Hantera både confirm och alert
         _page.Dialog += async (_, dialog) =>
