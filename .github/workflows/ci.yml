@@ -263,7 +263,10 @@ jobs:
         run: |
           newman run postman/WTP.postman_collection.json \
             -e postman/WTP_environment.postman_environment.json \
-            --insecure
+            --insecure \
+            --reporters cli,json \
+            --reporter-json-export newman-results.json \
+            --cookie-jar newman_cookies.json
 
   gui_tests:
     needs: api_tests_and_seed
