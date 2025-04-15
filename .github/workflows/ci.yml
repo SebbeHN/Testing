@@ -414,7 +414,7 @@ jobs:
           # Kontrollera om användaren skapades korrekt
           echo "Kontrollerar att användaren newstaff@example.com skapades korrekt:"
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
-            SELECT id, first_name, email, company, role_id FROM users WHERE email = 'newstaff@example.com';
+            SELECT \"Id\", first_name, email, company, role_id FROM users WHERE email = 'newstaff@example.com';
           "
           
           # Seed testticket för chattestet
