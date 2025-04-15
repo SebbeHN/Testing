@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("N2NTest")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+704de241f5a9b8747eea8f5da8f97f050673715f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+535b729ae09b4cf599aaafb0ddc37fa98729b3ad")]
 [assembly: System.Reflection.AssemblyProductAttribute("N2NTest")]
 [assembly: System.Reflection.AssemblyTitleAttribute("N2NTest")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
