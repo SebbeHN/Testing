@@ -161,9 +161,14 @@ jobs:
           dotnet test ./WTP-main/server.Tests/server.Tests.csproj --verbosity normal
       - name: Seed testdata
         run: |
-          # Kör seed-kommandot men avsluta efter 30 sekunder
-          timeout 30s dotnet run --project ./WTP-main/server/server.csproj seed || true
-          echo "Seedning avslutad (med timeout eller naturligt)"
+          # Kör SQL direkt från seed-filen istället för att gå via applikationen
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+            -- Skapa admin-användare
+            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+            VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
+            ON CONFLICT (email) DO UPDATE SET password = 'admin321';
+          "
+          echo "Direkt seed av testdata klar"
 
   postman_tests:
     needs: api_tests_and_seed
@@ -198,6 +203,8 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Installera psql
         run: sudo apt-get install -y postgresql-client
+      - name: Installera curl
+        run: sudo apt-get install -y curl
       - name: Initiera databasstruktur (samma som setup_db)
         run: |
           # Kör grundläggande schemadefiniton från init.sql
@@ -250,23 +257,44 @@ jobs:
           echo "Anslutningssträng i appsettings.json uppdaterad"
       - name: Seed testdata
         run: |
-          # Kör seed-kommandot men avsluta efter 30 sekunder
-          timeout 30s dotnet run --project ./WTP-main/server/server.csproj seed || true
-          echo "Seedning avslutad (med timeout eller naturligt)"
+          # Kör SQL direkt från seed-filen istället för att gå via applikationen
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+            -- Skapa admin-användare
+            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+            VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
+            ON CONFLICT (email) DO UPDATE SET password = 'admin321';
+            
+            -- Seed minimal testdata för Postman-testerna
+            INSERT INTO public.tele_forms (first_name, email, service_type, issue_type, message, chat_token, submitted_at, is_chat_active, company_type)
+            VALUES ('TestKund', 'testkund@example.com', 'Bredband', 'Tekniskt problem', 'Testar ett formulär för teleärenden', '14dbbbb1-df13-4f5a-9ed7-f4553c48469c', '2025-04-07 09:51:40.188483 +00:00', true, 'Tele/Bredband')
+            ON CONFLICT DO NOTHING;
+          "
+          echo "Direkt seed av testdata klar"
       - name: Installera Newman
         run: npm install -g newman
       - name: Starta backend
         run: dotnet run --project ./WTP-main/server/server.csproj &
       - name: Vänta på backend
-        run: sleep 10
+        run: sleep 30
+      - name: Kontrollera att backend körs
+        run: |
+          echo "Kontrollerar om backend svarar..."
+          curl -v http://localhost:5000/api/health || echo "Health endpoint svarar inte, men vi fortsätter"
+          echo "Testar admin-inloggning..."
+          curl -v -X POST http://localhost:5000/api/login -H "Content-Type: application/json" -d '{"username":"admin@admin.com","password":"admin321"}' || echo "Login-endpoint svarar inte, men vi fortsätter"
       - name: Kör Postman-tester
         run: |
+          # Se till att filerna finns och tillgängliga
+          echo "Listar Postman-filer:"
+          ls -la postman/
+          
           newman run postman/WTP.postman_collection.json \
             -e postman/WTP_environment.postman_environment.json \
             --insecure \
             --reporters cli,json \
             --reporter-json-export newman-results.json \
-            --export-cookie-jar newman_cookies.json
+            --export-cookie-jar newman_cookies.json \
+            --verbose
 
 
   gui_tests:
@@ -352,9 +380,19 @@ jobs:
           echo "Anslutningssträng i appsettings.json uppdaterad"
       - name: Seed testdata
         run: |
-          # Kör seed-kommandot men avsluta efter 30 sekunder
-          timeout 30s dotnet run --project ./WTP-main/server/server.csproj seed || true
-          echo "Seedning avslutad (med timeout eller naturligt)"
+          # Kör SQL direkt från seed-filen istället för att gå via applikationen
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+            -- Skapa admin-användare
+            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+            VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
+            ON CONFLICT (email) DO UPDATE SET password = 'admin321';
+            
+            -- Seed minimal testdata för GUI-testerna
+            INSERT INTO public.tele_forms (first_name, email, service_type, issue_type, message, chat_token, submitted_at, is_chat_active, company_type)
+            VALUES ('TestKund', 'testkund@example.com', 'Bredband', 'Tekniskt problem', 'Testar ett formulär för teleärenden', '14dbbbb1-df13-4f5a-9ed7-f4553c48469c', '2025-04-07 09:51:40.188483 +00:00', true, 'Tele/Bredband')
+            ON CONFLICT DO NOTHING;
+          "
+          echo "Direkt seed av testdata klar"
       - name: Installera Playwright-tester
         run: |
           cd WTP-main/N2N
@@ -363,14 +401,14 @@ jobs:
       - name: Starta backend
         run: dotnet run --project ./WTP-main/server/server.csproj &
       - name: Vänta på backend
-        run: sleep 5
+        run: sleep 30
       - name: Starta frontend
         run: |
           cd WTP-main/client
           npm install
           npm run dev &
       - name: Vänta på frontend
-        run: sleep 10
+        run: sleep 30
       - name: Kör GUI-tester
         run: |
           cd WTP-main/N2N
