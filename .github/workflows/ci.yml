@@ -399,81 +399,32 @@ jobs:
           "
           echo "Direkt seed av testdata klar"
       
-      # Starta backend från WTP-main
       - name: Starta backend
         run: dotnet run --project ./WTP-main/server/server.csproj &
+      
       - name: Vänta på backend
         run: sleep 30
-      
-      # Starta frontend från WTP-main med --host för att exponera på nätverket
-      - name: Starta frontend
+
+      - name: Starta frontend (Vite)
         run: |
           cd WTP-main/client
           npm install
-          # Använd --host för att exponera på nätverket
           npm run dev -- --host &
           sleep 10
-          # Testa om servern är tillgänglig
-          curl -v http://localhost:3001 || echo "Frontend svarar inte på port 3001"
-      - name: Vänta på frontend
-        run: sleep 30
-      
-      # Installera Playwright för .NET i N2NTest
-      - name: Installera Playwright för .NET
+          curl -v http://localhost:3001 || echo "⚠️ Frontend svarar inte på port 3001"
+
+      - name: Säkerställ headless mode i testerna
+        run: find N2NTest/Steps -name "*.cs" -exec sed -i 's/Headless = false/Headless = true/g' {} \;
+
+      - name: Installera Playwright + build projekt
         run: |
           cd N2NTest
           dotnet restore
           dotnet build
           dotnet tool install --global Microsoft.Playwright.CLI
           playwright install --with-deps
-      
-      # Skapa script för att uppdatera testerna med debug-information
-      - name: Skapa script för att uppdatera testerna
-        run: |
-          cat > update_tests.sh << 'EOL'
-          #!/bin/bash
-          
-          # Uppdatera alla Step-klasser till headless=true
-          find N2NTest/Steps -name "*.cs" -type f -exec sed -i 's/Headless = false/Headless = true/g' {} \;
-          
-          # Uppdatera även PlaywrightService i TicketManagementSteps.cs
-          sed -i 's/Headless = false/Headless = true/g' N2NTest/Steps/TicketManagementSteps.cs
-          
-          # Öka timeout-värdena
-          find N2NTest/Steps -name "*.cs" -type f -exec sed -i 's/Timeout = 5000/Timeout = 60000/g' {} \;
-          find N2NTest/Steps -name "*.cs" -type f -exec sed -i 's/Timeout = 3000/Timeout = 60000/g' {} \;
-          
-          # Lägg till debug-kod i LoginHelper.cs
-          cat > debug_code.txt << 'DEBUG'
-              // För att debugga i CI
-              public static async Task DebugUrl(IPage page, string url)
-              {
-                  try {
-                      Console.WriteLine($"Testar att navigera till {url}");
-                      await page.GotoAsync(url);
-                      Console.WriteLine($"Nuvarande URL: {page.Url}");
-                      Console.WriteLine($"Page content: {await page.ContentAsync()}");
-                      await page.ScreenshotAsync(new PageScreenshotOptions { Path = $"debug-{Guid.NewGuid()}.png" });
-                  } catch (Exception ex) {
-                      Console.WriteLine($"Debug error: {ex.Message}");
-                  }
-              }
-          DEBUG
-          
-          # Lägg till debug-kod innan login
-          sed -i '/public static async Task LoginAsRole/,/try/s/try/try\n            {\n                await DebugUrl(page, "http:\/\/localhost:3001");\n                await DebugUrl(page, "http:\/\/localhost:3001\/staff\/login");\n            } catch (Exception ex) {\n                Console.WriteLine($"Debug URL failed: {ex.Message}");\n            }\n            try/' N2NTest/Helpers/LoginHelper.cs
-          
-          # Lägg till debug-metoden i LoginHelper-klassen
-          sed -i '/}/s/.$/\n\n    '"$(cat debug_code.txt)"'\n}/' N2NTest/Helpers/LoginHelper.cs
-          
-          echo "Alla filer uppdaterade med debug-information"
-          EOL
-          
-          chmod +x update_tests.sh
-          ./update_tests.sh
-      
-      # Kör tester från N2NTest
-      - name: Kör GUI-tester
+
+      - name: Kör Playwright GUI-tester
         run: |
           cd N2NTest
           dotnet test
