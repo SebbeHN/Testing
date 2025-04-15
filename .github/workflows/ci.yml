@@ -200,39 +200,65 @@ jobs:
         run: sudo apt-get install -y postgresql-client
       - name: Initiera databasstruktur (samma som setup_db)
         run: |
+          # Kör grundläggande schemadefiniton från init.sql
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+          
+          # Lägg till nödvändiga data i role-tabellen
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+          -- Säkerställ att roller finns
           INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
           INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
           INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;
+          
+          -- Skapa vyn initial_form_messages
           CREATE OR REPLACE VIEW initial_form_messages AS
-          SELECT tf.chat_token, tf.message, tf.first_name as sender, tf.submitted_at, tf.issue_type, tf.email, tf.company_type as form_type
-          FROM tele_forms tf WHERE tf.is_chat_active = true
+          SELECT
+              tf.chat_token,
+              tf.message,
+              tf.first_name as sender,
+              tf.submitted_at,
+              tf.issue_type,
+              tf.email,
+              tf.company_type as form_type
+          FROM tele_forms tf
+          WHERE tf.is_chat_active = true
           UNION ALL
-          SELECT ff.chat_token, ff.message, ff.first_name as sender, ff.submitted_at, ff.issue_type, ff.email, ff.company_type as form_type
-          FROM fordon_forms ff WHERE ff.is_chat_active = true
+          SELECT
+              ff.chat_token,
+              ff.message,
+              ff.first_name as sender,
+              ff.submitted_at,
+              ff.issue_type,
+              ff.email,
+              ff.company_type as form_type
+          FROM fordon_forms ff
+          WHERE ff.is_chat_active = true
           UNION ALL
-          SELECT fs.chat_token, fs.message, fs.first_name as sender, fs.submitted_at, fs.issue_type, fs.email, fs.company_type as form_type
-          FROM forsakrings_forms fs WHERE fs.is_chat_active = true;"
+          SELECT
+              fs.chat_token,
+              fs.message,
+              fs.first_name as sender,
+              fs.submitted_at,
+              fs.issue_type,
+              fs.email,
+              fs.company_type as form_type
+          FROM forsakrings_forms fs
+          WHERE fs.is_chat_active = true;"
       - name: Uppdatera appsettings.json med rätt anslutningssträng
         run: |
-          sed -i 's/"DefaultConnection": ".*"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true"/g' ./WTP-main/server/appsettings.json
+          sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true"/g' ./WTP-main/server/appsettings.json
+          echo "Anslutningssträng i appsettings.json uppdaterad"
       - name: Seed testdata
         run: |
+          # Kör seed-kommandot men avsluta efter 30 sekunder
           timeout 30s dotnet run --project ./WTP-main/server/server.csproj seed || true
+          echo "Seedning avslutad (med timeout eller naturligt)"
       - name: Installera Newman
         run: npm install -g newman
       - name: Starta backend
         run: dotnet run --project ./WTP-main/server/server.csproj &
       - name: Vänta på backend
         run: sleep 10
-      - name: Debug: skriv ut miljövariabler och appsettings.json
-        run: |
-          echo "=== MILJÖVARIABLER ==="
-          printenv
-          echo ""
-          echo "=== appsettings.json ==="
-          cat ./WTP-main/server/appsettings.json
       - name: Kör Postman-tester
         run: |
           newman run postman/WTP.postman_collection.json \
@@ -242,7 +268,8 @@ jobs:
             --reporter-json-export newman-results.json \
             --export-cookie-jar newman_cookies.json
 
-gui_tests:
+
+  gui_tests:
     needs: api_tests_and_seed
     runs-on: ubuntu-latest
     services:
