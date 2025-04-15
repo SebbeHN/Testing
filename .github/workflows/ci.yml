@@ -266,7 +266,8 @@ jobs:
             --insecure \
             --reporters cli,json \
             --reporter-json-export newman-results.json \
-            --cookie-jar newman_cookies.json
+            --export-cookie-jar newman_cookies.json
+
 
   gui_tests:
     needs: api_tests_and_seed
