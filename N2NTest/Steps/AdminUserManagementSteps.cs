@@ -425,4 +425,12 @@ public async Task WhenISelectAsTheCompany(string company)
             // eftersom vi vet att det fungerar manuellt
         }
     }
+    
+    [Then(@"the user with email ""(.*)"" should be visible")]
+    public async Task ThenTheUserWithEmailShouldBeVisible(string email)
+    {
+        var row = _page.Locator("table tr").Filter(new() { HasText = email });
+        await row.WaitForAsync(new() { Timeout = 10000 });
+    }
+
 }
