@@ -19,18 +19,18 @@ namespace N2NTest.Feature
     
     [System.CodeDom.Compiler.GeneratedCodeAttribute("TechTalk.SpecFlow", "3.9.0.0")]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [Xunit.TraitAttribute("Category", "admin")]
+    [Xunit.TraitAttribute("Category", "adminCreate")]
     public partial class AdminUserManagementFeature : object, Xunit.IClassFixture<AdminUserManagementFeature.FixtureData>, System.IDisposable
     {
         
         private static TechTalk.SpecFlow.ITestRunner testRunner;
         
         private static string[] featureTags = new string[] {
-                "admin"};
+                "adminCreate"};
         
         private Xunit.Abstractions.ITestOutputHelper _testOutputHelper;
         
-#line 1 "adminCreateUser.feature"
+#line 1 "01_adminCreateUser.feature"
 #line hidden
         
         public AdminUserManagementFeature(AdminUserManagementFeature.FixtureData fixtureData, N2NTest_XUnitAssemblyFixture assemblyFixture, Xunit.Abstractions.ITestOutputHelper testOutputHelper)
@@ -42,7 +42,7 @@ namespace N2NTest.Feature
         public static void FeatureSetup()
         {
             testRunner = TechTalk.SpecFlow.TestRunnerManager.GetTestRunner();
-            TechTalk.SpecFlow.FeatureInfo featureInfo = new TechTalk.SpecFlow.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Feature", "Admin User Management", null, ProgrammingLanguage.CSharp, featureTags);
+            TechTalk.SpecFlow.FeatureInfo featureInfo = new TechTalk.SpecFlow.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Feature", "Admin user management", null, ProgrammingLanguage.CSharp, featureTags);
             testRunner.OnFeatureStart(featureInfo);
         }
         
@@ -83,7 +83,7 @@ namespace N2NTest.Feature
         }
         
         [Xunit.SkippableFactAttribute(DisplayName="Admin creates a new staff user")]
-        [Xunit.TraitAttribute("FeatureTitle", "Admin User Management")]
+        [Xunit.TraitAttribute("FeatureTitle", "Admin user management")]
         [Xunit.TraitAttribute("Description", "Admin creates a new staff user")]
         public void AdminCreatesANewStaffUser()
         {

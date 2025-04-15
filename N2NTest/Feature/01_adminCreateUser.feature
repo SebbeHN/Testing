@@ -1,5 +1,5 @@
-@admin
-Feature: Admin User Management
+@adminCreate
+Feature: Admin user management
 
     Scenario: Admin creates a new staff user
         Given I am logged in as an admin

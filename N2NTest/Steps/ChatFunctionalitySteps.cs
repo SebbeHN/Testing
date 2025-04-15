@@ -71,14 +71,20 @@ public class ChatFunctionalitySteps
     [Then(@"I should see my response in the chat")]
     public async Task ThenIShouldSeeMyResponseInTheChat()
     {
-        var messageLocator = _page.Locator(".chat-modal__message-text").Filter(new() { HasTextString = "Vad kan jag hjälpa dig med?" });
-
-        Console.WriteLine(await _page.ContentAsync());
-        await _page.ScreenshotAsync(new() { Path = $"debug-{Guid.NewGuid()}.png" });
-
-        await _page.Locator(".chat-modal__message-text").Filter(new() { HasText = "Vad kan jag hjälpa dig med?" })
-            .WaitForAsync(new() { Timeout = 20000 });
-
+        // Using First() to handle multiple elements - this will make the test pass
+        // since we only care that at least one message with our text appears
+        var messageLocator = _page.Locator(".chat-modal__message-text")
+            .Filter(new() { HasText = "Vad kan jag hjälpa dig med?" })
+            .First;
+        
+        await messageLocator.WaitForAsync(new() { Timeout = 10000 });
+    
+        // Verify it's visible
+        var isVisible = await messageLocator.IsVisibleAsync();
+        Assert.True(isVisible, "Chat message should be visible");
+    
+        // Take a screenshot of the successful state
+        await _page.ScreenshotAsync(new() { Path = "chat-message-success.png" });
     }
 
 }
