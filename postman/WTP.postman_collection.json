@@ -250,8 +250,11 @@
 									"  pm.expect(jsonData.message).to.equal(\"Användare skapad\");",
 									"  ",
 									"  // Spara användar-ID för senare användning",
-									"  if (jsonData.user && jsonData.user.Id) {",
-									"    pm.environment.set(\"testUserId\", jsonData.user.Id);",
+									"  if (jsonData.user && jsonData.user.id) {",
+									"    pm.environment.set(\"testUserId\", jsonData.user.id);",
+									"    console.log(\"testUserId satt till: \" + jsonData.user.id);",
+									"  } else {",
+									"    console.log(\"Kunde inte sätta testUserId, user: \", JSON.stringify(jsonData.user));",
 									"  }",
 									"});"
 								],
@@ -297,9 +300,25 @@
 									"});",
 									"",
 									"pm.test(\"Användare uppdaterad\", function() {",
-									"  var jsonData = pm.response.json();",
-									"  pm.expect(jsonData.message).to.include(\"Uppgifterna uppdaterades\");",
+									"  try {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include(\"Uppgifterna uppdaterades\");",
+									"  } catch (error) {",
+									"    console.error(\"Fel vid parsning av respons: \", error);",
+									"    console.log(\"Respons-text: \", pm.response.text());",
+									"    pm.expect.fail(\"Kunde inte uppdatera användare: \" + error.message);",
+									"  }",
 									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"console.log(\"Användar-ID som används för uppdatering: \" + pm.environment.get(\"testUserId\"));"
 								],
 								"type": "text/javascript",
 								"packages": {}
@@ -344,12 +363,28 @@
 									"});",
 									"",
 									"pm.test(\"Användare borttagen\", function() {",
-									"  var jsonData = pm.response.json();",
-									"  pm.expect(jsonData.message).to.equal(\"Användare borttagen\");",
+									"  try {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.equal(\"Användare borttagen\");",
+									"  } catch (error) {",
+									"    console.error(\"Fel vid parsning av respons: \", error);",
+									"    console.log(\"Respons-text: \", pm.response.text());",
+									"    pm.expect.fail(\"Kunde inte radera användare: \" + error.message);",
+									"  }",
 									"});",
 									"",
 									"// Rensa användar-ID",
 									"pm.environment.unset(\"testUserId\");"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"console.log(\"Användar-ID som ska raderas: \" + pm.environment.get(\"testUserId\"));"
 								],
 								"type": "text/javascript",
 								"packages": {}
