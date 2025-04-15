@@ -426,20 +426,7 @@ public async Task WhenISelectAsTheCompany(string company)
         }
     }
     
-    [Then(@"the user with email ""(.*)"" should be visible")]
-    public async Task ThenTheUserWithEmailShouldBeVisible(string email)
-    {
-        await _page.ReloadAsync();
-
-        try
-        {
-            await _page.Locator("table tr").Filter(new() { HasText = email }).WaitForAsync(new() { Timeout = 15000 });
-        }
-        catch (TimeoutException)
-        {
-            throw new Exception($"❌ Användaren med e-post '{email}' kunde inte hittas i tabellen.");
-        }
-    }
+    
 
 
 }

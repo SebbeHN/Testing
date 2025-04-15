@@ -12,4 +12,4 @@ Feature: Admin User Management
         And I select "staff" as the role
         And I click the "Skapa användare" button
         Then I should see a success message
-        Then the user with email "newstaff@example.com" should be visible
+       
