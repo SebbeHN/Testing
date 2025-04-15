@@ -1,0 +1,606 @@
+{
+	"info": {
+		"_postman_id": "b4ebf10a-f0fc-4b39-9dc3-8c240fd2f2fc",
+		"name": "WTP Copy",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "43372666"
+	},
+	"item": [
+		{
+			"name": "Fullt automatiserat flöde",
+			"item": [
+				{
+					"name": "Skicka in tele",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200\", function() {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Formulär skickat\", function() {",
+									"  var jsonData = pm.response.json();",
+									"  pm.expect(jsonData.success).to.be.true;",
+									"  ",
+									"  // Spara chatToken för senare användning",
+									"  if (jsonData.chatLink) {",
+									"    const tokenMatch = jsonData.chatLink.match(/\\/chat\\/(.+)$/);",
+									"    if (tokenMatch && tokenMatch[1]) {",
+									"      pm.environment.set(\"chatToken\", tokenMatch[1]);",
+									"    }",
+									"  }",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"TestKund\",\n  \"email\": \"testkund@example.com\",\n  \"serviceType\": \"Bredband\",\n  \"issueType\": \"Tekniskt problem\",\n  \"message\": \"Testar ett formulär för teleärenden\",\n  \"companyType\": \"Tele/Bredband\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tele",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tele"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Skicka in fordon",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200\", function() {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Formulär skickat\", function() {",
+									"  var jsonData = pm.response.json();",
+									"  pm.expect(jsonData.success).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"TestKund\",\n  \"email\": \"testkund@example.com\",\n  \"registrationNumber\": \"ABC123\",\n  \"issueType\": \"Garantiärende\",\n  \"message\": \"Testar ett formulär för fordonsärenden\",\n  \"companyType\": \"Fordonsservice\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/fordon",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"fordon"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Skicka in Försäkringsärende",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200\", function() {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Formulär skickat\", function() {",
+									"  var jsonData = pm.response.json();",
+									"  pm.expect(jsonData.success).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"TestKund\",\n  \"email\": \"testkund@example.com\",\n  \"insuranceType\": \"Hemförsäkring\",\n  \"issueType\": \"Frågor om försäkringsskydd\",\n  \"message\": \"Testar ett formulär för försäkringsärenden\",\n  \"companyType\": \"Försäkringsärenden\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/forsakring",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"forsakring"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Spara auth-cookie för framtida requests",
+									"if (pm.response.code === 200) {",
+									"  // Kontrollera att svaret innehåller user",
+									"  pm.test(\"Inloggning lyckades\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"    pm.expect(jsonData.user).to.exist;",
+									"  });",
+									"  ",
+									"  // Spara cookie i miljön",
+									"  if (pm.cookies.has(\"connect.sid\")) {",
+									"    pm.environment.set(\"authCookie\", pm.cookies.get(\"connect.sid\"));",
+									"  }",
+									"} else {",
+									"  pm.test(\"Inloggning misslyckades\", function() {",
+									"    pm.expect.fail(\"Fel statuskod: \" + pm.response.code);",
+									"  });",
+									"}",
+									"// 🔒 DEBUG: Login info",
+									"console.log(\"🚀 Request body:\", pm.request.body);",
+									"console.log(\"🔒 Response status:\", pm.response.code);",
+									"console.log(\"🧾 Response body:\", pm.response.text());",
+									"console.log(\"📦 Response headers:\", JSON.stringify(pm.response.headers.toObject(), null, 2));",
+									"console.log(\"🍪 Cookies:\", JSON.stringify(pm.cookies.toObject(), null, 2));"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"admin@admin.com\",\n  \"password\": \"admin321\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Skapa användare",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200\", function() {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Användare skapad\", function() {",
+									"  var jsonData = pm.response.json();",
+									"  pm.expect(jsonData.message).to.equal(\"Användare skapad\");",
+									"  ",
+									"  // Spara användar-ID för senare användning",
+									"  if (jsonData.user && jsonData.user.Id) {",
+									"    pm.environment.set(\"testUserId\", jsonData.user.Id);",
+									"  }",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"TestAnvändare\",\n  \"password\": \"Lösenord123\",\n  \"company\": \"tele\",\n  \"role\": \"staff\",\n  \"email\": \"testuser@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Uppdatera användare",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200\", function() {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Användare uppdaterad\", function() {",
+									"  var jsonData = pm.response.json();",
+									"  pm.expect(jsonData.message).to.include(\"Uppgifterna uppdaterades\");",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"UppdateradAnvändare\",\n  \"password\": \"NyttLösenord123\",\n  \"company\": \"\",\n  \"role\": \"\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/{{testUserId}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Radera användare",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200\", function() {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Användare borttagen\", function() {",
+									"  var jsonData = pm.response.json();",
+									"  pm.expect(jsonData.message).to.equal(\"Användare borttagen\");",
+									"});",
+									"",
+									"// Rensa användar-ID",
+									"pm.environment.unset(\"testUserId\");"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/{{testUserId}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"{{testUserId}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Hämta alla ärenden",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200\", function() {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Ärenden returnerades\", function() {",
+									"  var jsonData = pm.response.json();",
+									"  pm.expect(jsonData).to.be.an(\"array\");",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tickets",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Hämta specifik chatt",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200\", function() {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Chatdata returnerades\", function() {",
+									"  var jsonData = pm.response.json();",
+									"  pm.expect(jsonData.messages).to.be.an(\"array\");",
+									"  pm.expect(jsonData.chatOwner).to.exist;",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/chat/messages/{{chatToken}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"chat",
+								"messages",
+								"{{chatToken}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Skicka meddelande i chatten",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200\", function() {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Meddelande skickat\", function() {",
+									"  var jsonData = pm.response.json();",
+									"  pm.expect(jsonData.id).to.exist;",
+									"  pm.expect(jsonData.sender).to.exist;",
+									"  pm.expect(jsonData.message).to.exist;",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"chatToken\": \"{{chatToken}}\",\n  \"sender\": \"TestAnvändare\",\n  \"message\": \"Detta är ett testmeddelande\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/chat/message",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"chat",
+								"message"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Arkivera ärenden",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status 200\", function() {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Ärende arkiverat\", function() {",
+									"  var jsonData = pm.response.json();",
+									"  pm.expect(jsonData.message).to.include(\"Ticket archived successfully\");",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"chatToken\": \"{{chatToken}}\",\n  \"firstName\": \"TestKund\",\n  \"email\": \"testkund@example.com\",\n  \"issueType\": \"Tekniskt problem\",\n  \"message\": \"Testar ett ärende\",\n  \"formType\": \"Tele/Bredband\",\n  \"determineTable\": \"tele_forms\",\n  \"resolutionNotes\": \"Ärendet har lösts under testning\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tickets/archive",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets",
+								"archive"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logga ut",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    });",
+									"",
+									"    pm.test(\"Utloggning lyckades\", function() {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"",
+									"    });",
+									"    ",
+									"    pm.environment.unset (\"authCookie\");"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Detta flöde kör hela arbetsflödet enligt användarens önskade ordning."
+		}
+	]
+}
