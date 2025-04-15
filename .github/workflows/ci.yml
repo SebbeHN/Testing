@@ -423,6 +423,24 @@ jobs:
           dotnet tool install --global Microsoft.Playwright.CLI
           playwright install --with-deps
       
+      # Skapa script som kommer modifiera Step klaserna för att använda headless mode
+      - name: Skapa script för att uppdatera headless läge
+        run: |
+          cat > update_headless.sh << 'EOL'
+          #!/bin/bash
+          
+          # Uppdatera alla Step-klasser till headless=true
+          find N2NTest/Steps -name "*.cs" -type f -exec sed -i 's/Headless = false/Headless = true/g' {} \;
+          
+          # Uppdatera även PlaywrightService i TicketManagementSteps.cs
+          sed -i 's/Headless = false/Headless = true/g' N2NTest/Steps/TicketManagementSteps.cs
+          
+          echo "Alla filer uppdaterade till headless = true"
+          EOL
+          
+          chmod +x update_headless.sh
+          ./update_headless.sh
+      
       # Kör tester från N2NTest
       - name: Kör GUI-tester
         run: |
