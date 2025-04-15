@@ -18,169 +18,10 @@ public class AdminDeleteUserSteps
     [BeforeScenario]
     public async Task Setup()
     {
-        var result = await PlaywrightService.CreateNewPageAsync();
-       
-        
+        var result = await PlaywrightSetup.CreateBrowserAndPage();
         _browser = result.browser;
         _page = result.page;
-        
     }
-    [BeforeScenario]
-public async Task EnsureTestUserExists()
-{
-    Console.WriteLine("Ensuring test user exists before running delete test...");
-    
-    // Navigate to admin dashboard
-    await _page.GotoAsync("http://localhost:3001/staff/login");
-    await LoginHelper.LoginAsRole(_page, "admin");
-    await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-    await _page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
-    await Task.Delay(2000);
-    
-    // Check if user exists
-    var userEmail = "newstaff@example.com";
-    var userExists = await _page.EvaluateAsync<bool>($@"(email) => {{
-        const rows = Array.from(document.querySelectorAll('table tr'));
-        return rows.some(row => row.textContent.includes(email));
-    }}", userEmail);
-    
-    if (!userExists) {
-        Console.WriteLine($"Creating test user {userEmail} for delete test...");
-        await CreateTestUser(userEmail);
-    } else {
-        Console.WriteLine($"Test user {userEmail} already exists");
-    }
-}
-
-private async Task CreateTestUser(string email)
-{
-    // Click create user button with proper error handling
-    await _page.ScreenshotAsync(new() { Path = "before-create-user.png" });
-    
-    try {
-        var createUserLink = await _page.QuerySelectorAsync("a:has-text('Create User'), a:has-text('Skapa användare')");
-        if (createUserLink != null) {
-            await createUserLink.ClickAsync();
-        } else {
-            await _page.EvaluateAsync(@"() => {
-                const links = Array.from(document.querySelectorAll('a'));
-                const createUserLink = links.find(a =>
-                    a.textContent.includes('Create User') ||
-                    a.textContent.includes('Skapa användare') ||
-                    (a.textContent.includes('Create') && a.textContent.includes('User'))
-                );
-                if (createUserLink) createUserLink.click();
-            }");
-        }
-    } catch (Exception ex) {
-        Console.WriteLine($"Error clicking create user: {ex.Message}");
-    }
-
-    // Wait for page to load
-    await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-    await Task.Delay(2000);
-    
-    // Fill email with multiple attempts
-    try {
-        await _page.FillAsync("input[name='email']", email);
-    } catch (Exception) {
-        try {
-            await _page.FillAsync("input[type='email']", email);
-        } catch (Exception) {
-            await _page.EvaluateAsync($@"() => {{
-                const inputs = Array.from(document.querySelectorAll('input'));
-                const emailInput = inputs.find(i =>
-                    i.name === 'email' ||
-                    i.placeholder?.includes('e-post') ||
-                    i.type === 'email' ||
-                    i === document.querySelector('input')
-                );
-                if (emailInput) {{
-                    emailInput.value = '{email}';
-                    emailInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                }}
-            }}");
-        }
-    }
-    
-    // Fill name field
-    try {
-        await _page.FillAsync("input[name='firstName']", "Test");
-    } catch (Exception) {
-        await _page.EvaluateAsync(@"() => {
-            const inputs = Array.from(document.querySelectorAll('input'));
-            const nameInput = inputs.find(i =>
-                i.name === 'firstName' ||
-                i.placeholder?.includes('användarnamn') ||
-                inputs.indexOf(i) === 1
-            );
-            if (nameInput) {
-                nameInput.value = 'Test';
-                nameInput.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-        }");
-    }
-    
-    // Fill password field
-    try {
-        await _page.FillAsync("input[name='password']", "Password123!");
-    } catch (Exception) {
-        try {
-            await _page.FillAsync("input[type='password']", "Password123!");
-        } catch (Exception) {
-            await _page.EvaluateAsync(@"() => {
-                const inputs = Array.from(document.querySelectorAll('input'));
-                const passwordInput = inputs.find(i =>
-                    i.type === 'password' ||
-                    i.name === 'password'
-                );
-                if (passwordInput) {
-                    passwordInput.value = 'Password123!';
-                    passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            }");
-        }
-    }
-    
-    // Select staff role
-    try {
-        await _page.SelectOptionAsync("select[name='role']", "staff");
-    } catch (Exception) {
-        await _page.EvaluateAsync(@"() => {
-            const select = document.querySelector('select[name=""role""]') ||
-                           document.querySelectorAll('select')[1];
-            if (select) {
-                select.value = 'staff';
-                select.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        }");
-    }
-    
-    // Click submit button
-    await _page.ScreenshotAsync(new() { Path = "before-submit-create.png" });
-    try {
-        await _page.ClickAsync("button[type='submit'], button:has-text('Skapa'), button:has-text('Create')");
-    } catch (Exception) {
-        await _page.EvaluateAsync(@"() => {
-            const buttons = Array.from(document.querySelectorAll('button'));
-            const submitBtn = buttons.find(b => 
-                b.type === 'submit' || 
-                b.textContent.includes('Skapa') || 
-                b.textContent.includes('Create')
-            );
-            if (submitBtn) submitBtn.click();
-        }");
-    }
-    
-    // Wait for completion and verify
-    await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-    await Task.Delay(3000);
-    await _page.ScreenshotAsync(new() { Path = "after-create-user.png" });
-    
-    // Return to admin dashboard to ensure we're ready for the delete test
-    await _page.GotoAsync("http://localhost:3001/admin/dashboard");
-    await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-}
 
     [AfterScenario]
     public async Task Teardown()
@@ -333,50 +174,91 @@ public async Task GivenIAmLoggedInAsAnAdmin()
     }
 }
 
-    [When(@"I delete the user with email ""(.*)""")]
-    public async Task WhenIDeleteUserWithEmail(string email)
+[When(@"I delete the user with email ""(.*)""")]
+public async Task WhenIDeleteUserWithEmail(string email)
+{
+    try
     {
-        try
-        {
-            Console.WriteLine($"Looking for user with email: {email}");
-            await _page.ScreenshotAsync(new() { Path = "before-delete.png" });
+        Console.WriteLine($"Letar efter användare med e-post: {email}");
+        await _page.ScreenshotAsync(new() { Path = "before-delete.png" });
         
-            // Log table contents for debugging
-            var tableContent = await _page.EvaluateAsync<string>(@"() => {
+        // Vänta på att tabellen laddas fullständigt
+        await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await _page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Task.Delay(3000);
+        
+        // Logga tabellinnehåll för debugging
+        var tableContent = await _page.EvaluateAsync<string>(@"() => {
             const rows = Array.from(document.querySelectorAll('table tr'));
             return rows.map(row => row.textContent).join('\n');
         }");
-            Console.WriteLine($"Table content: {tableContent}");
+        Console.WriteLine($"Tabellinnehåll: {tableContent}");
         
-            // Check if the user with email exists at all
-            var userExists = await _page.EvaluateAsync<bool>(@"(email) => {
-    const rows = Array.from(document.querySelectorAll('table tr'));
-    return rows.some(row => row.textContent.includes(email));
-}", email);
+        // Kontrollera om användaren finns överhuvudtaget
+        var userExists = await _page.EvaluateAsync<bool>(@"(email) => {
+            const rows = Array.from(document.querySelectorAll('table tr'));
+            return rows.some(row => row.textContent.includes(email));
+        }", email);
         
+        if (!userExists)
+        {
+            Console.WriteLine($"Användare med e-post {email} hittades inte, provar att ladda om sidan!");
+            await _page.ReloadAsync();
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            await Task.Delay(5000);
+            
+            // Kontrollera igen efter omladdning
+            userExists = await _page.EvaluateAsync<bool>(@"(email) => {
+                const rows = Array.from(document.querySelectorAll('table tr'));
+                return rows.some(row => row.textContent.includes(email));
+            }", email);
+            
             if (!userExists)
             {
-                Console.WriteLine($"User with email {email} not found in the table!");
+                throw new Exception($"Användare med e-post {email} hittades inte i tabellen!");
             }
-        
-            // Try to find the row with increased timeout
-            var row = _page.Locator("table tr").Filter(new() { HasText = email });
-            await row.WaitForAsync(new() { Timeout = 20000 }); 
-        
-            var deleteButton = row.Locator("button", new() { HasTextString = "Ta bort" });
-            await deleteButton.ClickAsync();
-        
-            Console.WriteLine("Delete button clicked");
-            await _page.WaitForTimeoutAsync(2500); // Longer pause after click
         }
-        catch (Exception ex)
+        
+        // Använd JavaScript för att hitta raden och klicka på ta bort-knappen
+        var success = await _page.EvaluateAsync<bool>(@"(email) => {
+            try {
+                const rows = Array.from(document.querySelectorAll('table tr'));
+                const userRow = rows.find(row => row.textContent.includes(email));
+                
+                if (userRow) {
+                    const deleteButton = userRow.querySelector('button');
+                    if (deleteButton) {
+                        deleteButton.click();
+                        return true;
+                    }
+                }
+                return false;
+            } catch (e) {
+                console.error('Error:', e);
+                return false;
+            }
+        }", email);
+        
+        if (!success)
         {
-            Console.WriteLine($"Error during delete: {ex.Message}");
-            await _page.ScreenshotAsync(new() { Path = "delete-error.png" });
-            throw;
+            // Fallback-metod med Playwright's API
+            var row = _page.Locator("table tr").Filter(new() { HasText = email });
+            await row.WaitForAsync(new() { Timeout = PlaywrightSetup.DefaultTimeout }); 
+            
+            var deleteButton = row.Locator("button", new() { HasTextString = "Ta bort" });
+            await deleteButton.ClickAsync(new() { Timeout = PlaywrightSetup.DefaultTimeout });
         }
+        
+        Console.WriteLine("Ta bort-knappen klickad");
+        await _page.WaitForTimeoutAsync(5000); // Längre paus efter klick
     }
-
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Fel vid borttagning: {ex.Message}");
+        await _page.ScreenshotAsync(new() { Path = "delete-error.png" });
+        throw;
+    }
+}
 
     [Then(@"the user with email ""(.*)"" should no longer be visible")]
     public async Task ThenUserShouldBeGone(string email)
