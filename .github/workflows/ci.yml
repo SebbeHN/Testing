@@ -25,15 +25,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      
+
       - name: Install psql
         run: sudo apt-get install -y postgresql-client
-      
+
       - name: Initialize database structure
         run: |
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
@@ -41,28 +41,28 @@ jobs:
           INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
           INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
           INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;"
-      
+
       - name: Update connection strings
         run: |
           find ./WTP-main -name "*.cs" -type f -exec grep -l "_connectionString" {} \; | xargs -I{} sed -i 's/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;";/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;";/g' {}
           sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"/g' ./WTP-main/server/appsettings.json
-      
+
       - name: Skip failing test
         run: |
           if grep -q "GetTickets_FiltersByCompanyType" ./WTP-main/server.Tests/Tickets/TicketTests.cs; then
             sed -i 's/\[Fact\]\s*public async Task GetTickets_FiltersByCompanyType/[Fact(Skip = "initial_form_messages view not needed")]\n    public async Task GetTickets_FiltersByCompanyType/g' ./WTP-main/server.Tests/Tickets/TicketTests.cs
             echo "Skipped the failing test"
           fi
-      
+
       - name: Restore dependencies
         run: dotnet restore
         working-directory: ./WTP-main
-      
+
       - name: Build and run tests (xUnit)
         run: |
           dotnet build ./WTP-main/server.Tests/server.Tests.csproj
           dotnet test ./WTP-main/server.Tests/server.Tests.csproj --verbosity normal
-      
+
       - name: Seed admin user
         run: |
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
@@ -70,15 +70,15 @@ jobs:
             VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
             ON CONFLICT (email) DO UPDATE SET password = 'admin321';
           "
-      
+
       - name: Install tools
         run: npm install -g newman wait-on
-      
+
       - name: Start backend
         run: |
           cd ./WTP-main/server
           dotnet run &
-      
+
       - name: Wait for backend
         run: npx wait-on http://localhost:5000/api/health -t 120000 || echo "Backend health check timed out"
 
@@ -139,7 +139,7 @@ jobs:
 
       - name: Starta ASP.NET-backend (inkl. frontend via wwwroot)
         run: dotnet run --project ./WTP-main/server/server.csproj &
-      
+
       - name: Vänta på backend
         run: npx wait-on http://localhost:5000 --timeout 120000
 
@@ -161,12 +161,20 @@ jobs:
           -- RunConfiguration.TestCaseTimeout=90000 \
           -- RunConfiguration.DefaultTimeout=60000
 
-      - name: Ladda upp Playwright-artifacts (om det failar)
-        if: always()
-        uses: actions/upload-artifact@v4
+      
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: [api_tests, gui_tests]
+    steps:
+      - name: Deploy App
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          name: playwright-debug
-          path: |
-            N2NTest/TestResults/**/*.png
-            N2NTest/TestResults/**/*.html
-            N2NTest/bin/**/*.log
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script: | 
+            cd /srv/www/malmo/sebastian
+            git clone https://github.com/SebbeHN/Testing.git WTP
+            
