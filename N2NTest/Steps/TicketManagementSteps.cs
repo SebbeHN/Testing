@@ -14,6 +14,8 @@ public class TicketManagementSteps
     private IBrowser _browser;
     private ILocator _ticket;
     private char _ticketText;
+    private string BaseUrl => Environment.GetEnvironmentVariable("TEST_APP_URL") ?? "http://localhost:5000/";
+
 
     [BeforeScenario]
     public async Task Setup()
@@ -34,7 +36,7 @@ public class TicketManagementSteps
 
         try
         {
-            await _page.WaitForURLAsync("**/staff/dashboard", new() { Timeout = 5000 });
+            await _page.WaitForURLAsync($"{BaseUrl}/staff/dashboard", new() { Timeout = 5000 });
         }
         catch (TimeoutException)
         {

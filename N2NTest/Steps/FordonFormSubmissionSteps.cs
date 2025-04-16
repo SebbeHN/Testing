@@ -12,6 +12,8 @@ public class FordonFormSubmissionSteps
     private IBrowser _browser;
     private IBrowserContext _context;
     private IPage _page;
+    private string BaseUrl => Environment.GetEnvironmentVariable("TEST_APP_URL") ?? "http://localhost:5000/";
+
 
     [BeforeScenario]
     public async Task Setup()
@@ -32,7 +34,7 @@ public class FordonFormSubmissionSteps
     [Given(@"I am on the dynamic form page")]
     public async Task GivenIAmOnTheDynamicFormPage()
     {
-        await _page.GotoAsync("http://localhost:3001/dynamisk");
+        await _page.GotoAsync($"{BaseUrl}/dynamisk");
     }
     
     [When(@"I select ""(.*)"" as the company type")]

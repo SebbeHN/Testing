@@ -14,7 +14,9 @@ public class AdminUserManagementSteps
     private IPlaywright? _playwright;
     private IBrowser? _browser;
     private IBrowserContext? _context;
-    private IPage? _page;
+    private IPage? _page; 
+    private string BaseUrl => Environment.GetEnvironmentVariable("TEST_APP_URL") ?? "http://localhost:5000/";
+
 
     [BeforeScenario]
     public async Task Setup()

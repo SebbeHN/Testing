@@ -6,13 +6,16 @@ namespace N2NTest.Helpers
 {
     public static class LoginHelper
     {
+        private static string BaseUrl => Environment.GetEnvironmentVariable("TEST_APP_URL") ?? "http://localhost:5000/";
+        
         private static readonly Dictionary<string, (string Username, string Password)> Credentials =
             new Dictionary<string, (string Username, string Password)>
             {
                 { "staff", ("staff", "staff123") },
                 { "admin", ("admin", "admin321") }
             };
-
+        
+    
         public static async Task LoginAsRole(IPage page, string role)
         {
             try
@@ -21,7 +24,7 @@ namespace N2NTest.Helpers
                 Console.WriteLine($"Attempting to login as: {role}");
 
                 // Navigate to the login page first
-                await page.GotoAsync("http://localhost:3001/staff/login");
+                await page.GotoAsync($"{BaseUrl}staff/login");
                 await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
             
                 // Take screenshot of login page
@@ -58,7 +61,7 @@ namespace N2NTest.Helpers
 
         public static async Task Login(IPage page, string username, string password)
         {
-            await page.GotoAsync("http://localhost:3001/staff/login");
+            await page.GotoAsync($"{BaseUrl}staff/login");
 
             await page.FillAsync("input[name='username']", username);
             await page.FillAsync("input[name='password']", password);
