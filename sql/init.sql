@@ -132,6 +132,35 @@ WHERE f.is_chat_active = true;
 alter table initial_form_messages
     owner to sebastianholmberg;
 
+-- BEFINTLIG STRUKTUR (OFÖRÄNDRAD)
+-- ... dina CREATE TABLE + INDEX + VIEW-kommandon ...
+
+-- LÄGG TILL INITIALDATA (för roller + testdata)
+
+-- Roller
+INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
+INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
+INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;
+
+-- Användare
+INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+VALUES ('admin', 'admin321', NOW(), 'fordon', 2, 'admin@admin.com')
+ON CONFLICT (email) DO UPDATE SET password = 'admin321';
+
+INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+VALUES ('staff', 'staff123', NOW(), 'tele', 1, 'staff@staff.com')
+ON CONFLICT (email) DO UPDATE SET password = 'staff123';
+
+INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+VALUES ('Test', 'password123', NOW(), 'tele', 1, 'newstaff@example.com')
+ON CONFLICT (email) DO UPDATE SET password = 'password123';
+
+-- GUI testformulär
+INSERT INTO public.tele_forms (first_name, email, service_type, issue_type, message, chat_token, submitted_at, is_chat_active, company_type)
+VALUES ('TestKund', 'testkund@example.com', 'Bredband', 'Tekniskt problem', 'Testar ett formulär för teleärenden', '14dbbbb1-df13-4f5a-9ed7-f4553c48469c', NOW(), true, 'Tele/Bredband')
+ON CONFLICT DO NOTHING;
+
+
 
 
 
