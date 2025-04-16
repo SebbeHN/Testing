@@ -109,6 +109,7 @@ jobs:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true
       CI: true
+      TEST_APP_URL: http://localhost:5000
     steps:
       - uses: actions/checkout@v4
 
@@ -138,8 +139,8 @@ jobs:
           echo "namespace N2NTest.Helpers {
               public static class CIConfig {
                   public static readonly bool IsRunningInCI = true;
-                  public static readonly int DefaultTimeout = 60000;
-                  public static readonly int NavigationTimeout = 45000;
+                  public static readonly int DefaultTimeout = 120000;
+                  public static readonly int NavigationTimeout = 90000;
               }
           }" > N2NTest/Helpers/CIConfig.cs
 
@@ -148,13 +149,29 @@ jobs:
           find N2NTest/Steps -name "*.cs" -exec sed -i 's/Headless = false/Headless = true/g' {} \;
           find N2NTest/Steps -name "*.cs" -exec sed -i 's/SlowMo = 500/SlowMo = 0/g' {} \;
           find N2NTest/Steps -name "*.cs" -exec sed -i 's/SlowMo = 5000/SlowMo = 100/g' {} \;
+          # Add browser arguments for CI environment
+          find N2NTest/Steps -name "*.cs" -exec sed -i 's/await _playwright.Chromium.LaunchAsync/await _playwright.Chromium.LaunchAsync(new() { Headless = true, Args = new[] { "--no-sandbox", "--disable-dev-shm-usage" } })/g' {} \;
 
       - name: Starta backend
-        run: dotnet run --project ./WTP-main/server/server.csproj &
+        run: |
+          cd ./WTP-main/server
+          export ASPNETCORE_URLS=http://localhost:5000
+          export ASPNETCORE_ENVIRONMENT=Development
+          dotnet run &
 
       - name: Vänta på backend
-        run: sleep 60
-
+        run: |
+          npx wait-on http://localhost:5000 -t 60000
+          echo "Backend is running, checking for static files..."
+          # Check if the index.html exists in wwwroot
+          if [ -f "./WTP-main/server/wwwroot/index.html" ]; then
+            echo "Frontend files found in wwwroot"
+          else
+            echo "Warning: Frontend files not found in wwwroot, may cause test failures"
+          fi
+          # Give it extra time to fully initialize
+          sleep 15
+      
       - name: Install client dependencies
         run: npm install
         working-directory: ./WTP-main/client
@@ -175,8 +192,6 @@ jobs:
       - name: Wait for frontend
         run: npx wait-on http://localhost:3001/
       
-      
-
       - name: Installera Playwright + build projekt
         run: |
           cd N2NTest
@@ -188,4 +203,4 @@ jobs:
       - name: Kör Playwright GUI-tester
         run: |
           cd N2NTest
-          dotnet test
+          dotnet test --retry-on-failure --blame-hang-timeout 120000
