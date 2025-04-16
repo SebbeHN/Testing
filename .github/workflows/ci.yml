@@ -475,14 +475,7 @@ jobs:
           dotnet tool install --global Microsoft.Playwright.CLI
           playwright install --with-deps
 
-      
-      - name: Verify and ensure test user exists
-        run: |
-          echo "Ensuring test user exists in database right before tests run..."
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
-          INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
-          VALUES ('Test', 'password123', NOW(), 'fordon', 1, 'newstaff@example.com')
-          ON CONFLICT (email) DO UPDATE SET first_name = 'Test', company = 'fordon';
+    
 
       - name: Kör Playwright GUI-tester
         run: |
