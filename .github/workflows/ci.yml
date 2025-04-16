@@ -155,19 +155,27 @@ jobs:
       - name: Vänta på backend
         run: sleep 60
 
-      - name: Starta frontend (Vite)
-        run: |
-          cd WTP-main/client
-          npm install
-          npm run dev -- --host &
-          sleep 30
-          curl -v http://localhost:3001 || echo "⚠️ Frontend svarar inte"
+      - name: Install client dependencies
+        run: npm install
+        working-directory: ./WTP-main/client
 
-      - name: Kontrollera tjänststatus
+      - name: Build React client (production)
         run: |
-          curl -v http://localhost:3001 || echo "⚠️ Frontend inte redo"
-          curl -v http://localhost:5000/api/health || echo "⚠️ Backend inte redo"
-          sleep 10
+          npm run build
+          ls -la ../server/wwwroot
+        working-directory: ./WTP-main/client
+      
+      - name: Install serve (static file server)
+        run: npm install -g serve
+      
+      - name: Serve built client
+        run: nohup serve -s ../server/wwwroot -l 3001 > serve.log 2>&1 &
+        working-directory: ./WTP-main/client
+      
+      - name: Wait for frontend
+        run: npx wait-on http://localhost:3001/
+      
+      
 
       - name: Installera Playwright + build projekt
         run: |
