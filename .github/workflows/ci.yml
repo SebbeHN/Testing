@@ -142,9 +142,23 @@ jobs:
           INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
           INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;"
       
-      - name: Update connection strings
-        run: sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"/g' ./WTP-main/server/appsettings.json
-      
+             - name: Update connection strings
+             run: |
+          echo '{
+            "Logging": {
+              "LogLevel": {
+                "Default": "Information",
+                "Microsoft.AspNetCore": "Warning"
+              }
+            },
+            "AllowedHosts": "*",
+            "ConnectionStrings": {
+              "DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"
+            }
+          }' > ./WTP-main/server/appsettings.json
+
+
+     
       - name: Prepare application
         run: |
           # Backend
