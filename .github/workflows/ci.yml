@@ -151,9 +151,11 @@ jobs:
           dotnet tool install --global Microsoft.Playwright.CLI
           playwright install --with-deps
 
+      # Här lägger vi till miljövariabeln som tvingar headless-läge
       - name: Kör Playwright GUI-tester
         run: |
           cd N2NTest
+          export PLAYWRIGHT_HEADLESS=true
           dotnet test
 
       - name: Ladda upp Playwright-artifacts (om det failar)
@@ -165,4 +167,3 @@ jobs:
             N2NTest/TestResults/**/*.png
             N2NTest/TestResults/**/*.html
             N2NTest/bin/**/*.log
-
