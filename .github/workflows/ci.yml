@@ -4,6 +4,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+
 jobs:
   api_tests:
     runs-on: ubuntu-latest
@@ -30,8 +31,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       
-      - name: Install psql
-        run: sudo apt-get install -y postgresql-client
+      - name: Install required tools
+        run: sudo apt-get update && sudo apt-get install -y jq postgresql-client
       
       - name: Initialize database structure
         run: |
@@ -40,26 +41,35 @@ jobs:
       
       - name: Update connection strings
         run: |
-          # Update test files
-          find ./WTP-main -name "*.cs" -type f -exec grep -l "_connectionString" {} \; | xargs -I{} sed -i 's/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;";/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;";/g' {}
-
-          # Update connection string in appsettings.json
-          sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"/g' ./WTP-main/server/appsettings.json
+          # Create a temporary file with the correct connection string
+          cat > ./WTP-main/server/appsettings.json.new << 'EOF'
+          {
+            "Logging": {
+              "LogLevel": {
+                "Default": "Information",
+                "Microsoft.AspNetCore": "Warning"
+              }
+            },
+            "AllowedHosts": "*",
+            "ConnectionStrings": {
+              "DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"
+            }
+          }
+          EOF
+          
+          # Replace the original file
+          mv ./WTP-main/server/appsettings.json.new ./WTP-main/server/appsettings.json
       
       - name: Skip failing test
         run: |
           # Find the test file and add Skip attribute
           if grep -q "GetTickets_FiltersByCompanyType" ./WTP-main/server.Tests/Tickets/TicketTests.cs; then
             sed -i 's/\[Fact\]\s*public async Task GetTickets_FiltersByCompanyType/[Fact(Skip = "initial_form_messages view not needed")]\n    public async Task GetTickets_FiltersByCompanyType/g' ./WTP-main/server.Tests/Tickets/TicketTests.cs
-            echo "Skipped the failing test"
           fi
-      
-      - name: Restore dependencies
-        run: dotnet restore
-        working-directory: ./WTP-main
       
       - name: Build and run tests (xUnit)
         run: |
+          dotnet restore ./WTP-main
           dotnet build ./WTP-main/server.Tests/server.Tests.csproj
           dotnet test ./WTP-main/server.Tests/server.Tests.csproj --verbosity normal
 
@@ -88,7 +98,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup dotnet and Node.js
+      - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -108,7 +118,25 @@ jobs:
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
       
       - name: Update connection strings
-        run: sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"/g' ./WTP-main/server/appsettings.json
+        run: |
+          # Create a temporary file with the correct connection string
+          cat > ./WTP-main/server/appsettings.json.new << 'EOF'
+          {
+            "Logging": {
+              "LogLevel": {
+                "Default": "Information",
+                "Microsoft.AspNetCore": "Warning"
+              }
+            },
+            "AllowedHosts": "*",
+            "ConnectionStrings": {
+              "DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"
+            }
+          }
+          EOF
+          
+          # Replace the original file
+          mv ./WTP-main/server/appsettings.json.new ./WTP-main/server/appsettings.json
       
       - name: Prepare application
         run: |
@@ -122,11 +150,8 @@ jobs:
       
       - name: Seed test user
         run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
-            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
-            VALUES ('Test', 'password123', NOW(), 'fordon', 1, 'newstaff@example.com')
-            ON CONFLICT (email) DO UPDATE SET first_name = 'Test', company = 'fordon';
-          "
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;"
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "INSERT INTO public.users (first_name, password, created_at, company, role_id, email) VALUES ('Test', 'password123', NOW(), 'fordon', 1, 'newstaff@example.com') ON CONFLICT (email) DO UPDATE SET first_name = 'Test', company = 'fordon';"
       
       - name: Start services
         run: |
