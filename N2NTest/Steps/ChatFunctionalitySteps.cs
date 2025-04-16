@@ -69,96 +69,26 @@ public class ChatFunctionalitySteps
     }
 
     [Then(@"I should see my response in the chat")]
-public async Task ThenIShouldSeeMyResponseInTheChat()
-{
-    try
+    public async Task ThenIShouldSeeMyResponseInTheChat()
     {
-        // Vänta på att chattrutan ska vara helt laddad
-        await PlaywrightSetup.WaitForElementSafely(_page, ".chat-modal", PlaywrightSetup.DefaultTimeout);
-        
-        // Ta en skärmdump för felsökning
-        await _page.ScreenshotAsync(new() { Path = "chat-before-check.png" });
-        
-        // Vänta lite extra för att säkerställa att chattmeddelanden har tid att renderas
-        await Task.Delay(3000);
-        
-        // Hämta alla chattmeddelanden för loggning
-        var allMessages = await _page.EvaluateAsync<string[]>(@"() => {
-            return Array.from(document.querySelectorAll('.chat-modal__message-text'))
-                    .map(el => el.textContent.trim());
-        }");
-        
-        Console.WriteLine("Alla chattmeddelanden:");
-        foreach (var msg in allMessages)
+        try
         {
-            Console.WriteLine($"  - '{msg}'");
+            // Vänta tills det önskade meddelandet syns i chatten
+            await _page.WaitForSelectorAsync(".chat-modal", new PageWaitForSelectorOptions { Timeout = 5000 });
+            await _page.WaitForFunctionAsync(@"() => {
+            const messages = Array.from(document.querySelectorAll('.chat-message, .message, .chat-bubble'));
+            return messages.some(m => m.textContent.includes('Vad kan jag hjälpa dig med?'));
+            }", new PageWaitForFunctionOptions { Timeout = 10000 });
+            // Extra: ta screenshot vid bekräftelse
+            await _page.ScreenshotAsync(new() { Path = "chat-response-found.png" });
         }
-        
-        // Sök efter vårt meddelande med olika metoder
-        int maxRetries = 3;
-        bool messageFound = false;
-        
-        for (int retry = 0; retry < maxRetries && !messageFound; retry++)
+        catch (Exception)
         {
-            if (retry > 0)
-            {
-                Console.WriteLine($"Försök {retry+1} att hitta chattmeddelande...");
-                await Task.Delay(3000);
-            }
-            
-            try
-            {
-                // Metod 1: Använd Playwright's selektorer
-                var messageSelector = ".chat-modal__message-text";
-                var messageCount = await _page.Locator(messageSelector).CountAsync();
-                
-                if (messageCount > 0)
-                {
-                    for (int i = 0; i < messageCount; i++)
-                    {
-                        var messageText = await _page.Locator(messageSelector).Nth(i).TextContentAsync();
-                        if (messageText.Contains("Vad kan jag hjälpa dig med?"))
-                        {
-                            messageFound = true;
-                            Console.WriteLine($"Hittade meddelande med index {i}: '{messageText}'");
-                            break;
-                        }
-                    }
-                }
-                
-                // Metod 2: Om vi fortfarande inte hittat meddelandet, använd JavaScript
-                if (!messageFound)
-                {
-                    messageFound = await _page.EvaluateAsync<bool>(@"() => {
-                        const messages = Array.from(document.querySelectorAll('.chat-modal__message-text'));
-                        return messages.some(el => el.textContent.includes('Vad kan jag hjälpa dig med?'));
-                    }");
-                    
-                    if (messageFound)
-                    {
-                        Console.WriteLine("Hittade meddelande via JavaScript");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Fel vid sökning efter chattmeddelande (försök {retry+1}): {ex.Message}");
-                await Task.Delay(1000);
-            }
+            await _page.ScreenshotAsync(new() { Path = "chat-response-error.png" });
+            throw new Exception("Kunde inte hitta 'Vad kan jag hjälpa dig med?' i chattmeddelanden");
         }
-        
-        // Ta en slutlig skärmdump
-        await _page.ScreenshotAsync(new() { Path = "chat-final-state.png" });
-        
-        Assert.True(messageFound, "Kunde inte hitta 'Vad kan jag hjälpa dig med?' i chattmeddelanden");
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Fel vid kontroll av chattmeddelande: {ex.Message}");
-        await _page.ScreenshotAsync(new() { Path = "chat-error.png" });
-        throw;
-    }
-}
+
 
 }
 
