@@ -174,7 +174,8 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
-          script: | 
-            cd /srv/www/malmo/sebastian/Testing
-            git pull
+          script: |
+                cd /srv/www/malmo/sebastian
+                git clone https://github.com/SebbeHN/Testing.git
+
             
