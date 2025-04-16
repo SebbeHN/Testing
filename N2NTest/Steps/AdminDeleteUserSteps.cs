@@ -260,14 +260,36 @@ public async Task WhenIDeleteUserWithEmail(string email)
     }
 }
 
-    [Then(@"the user with email ""(.*)"" should no longer be visible")]
-    public async Task ThenUserShouldBeGone(string email)
+[Then(@"the user is deleted successfully")]
+public async Task ThenTheUserIsDeletedSuccessfully()
+{
+    try
     {
+        // Reload the page to ensure we have the latest data
         await _page.ReloadAsync();
-
-        var rows = await _page.Locator("table tr").Filter(new() { HasText = email }).CountAsync();
-
-        Assert.Equal(0, rows);
+        await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        
+        // Get the email from the scenario context (or hardcode if you prefer)
+        string email = "newstaff@example.com";
+        
+        // Check if the user still exists in the table
+        var userExists = await _page.EvaluateAsync<bool>(@"(email) => {
+            const rows = Array.from(document.querySelectorAll('table tr'));
+            return rows.some(row => row.textContent.includes(email));
+        }", email);
+        
+        // Assert that the user does not exist
+        Assert.False(userExists, $"User with email {email} should not be present after deletion");
+        
+        Console.WriteLine($"Successfully verified that user {email} was deleted");
+        await _page.ScreenshotAsync(new() { Path = "user-deleted-verification.png" });
     }
-
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Verification failed: {ex.Message}");
+        await _page.ScreenshotAsync(new() { Path = "verification-error.png" });
+        throw;
+    }
 }
+}
+

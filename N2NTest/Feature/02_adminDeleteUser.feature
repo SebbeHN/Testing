@@ -8,4 +8,4 @@ So that I can manage users effectively
         Given I am logged in as an admin
      
         When I delete the user with email "newstaff@example.com"
-        Then the user with email "newstaff@example.com" should no longer be visible
+        Then the user is deleted successfully
