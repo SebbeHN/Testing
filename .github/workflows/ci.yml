@@ -121,8 +121,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Install PostgreSQL client
-        run: sudo apt-get install -y postgresql-client
+      - name: Install PostgreSQL client + xvfb
+        run: sudo apt-get install -y postgresql-client xvfb
 
       - name: Initiera databasstruktur
         run: PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
@@ -140,7 +140,7 @@ jobs:
       - name: Starta ASP.NET-backend (inkl. frontend via wwwroot)
         run: dotnet run --project ./WTP-main/server/server.csproj &
 
-      - name: Vänta på backend (frontend är samma port nu)
+      - name: Vänta på backend
         run: npx wait-on http://localhost:5000
 
       - name: Setup Playwright (.NET)
@@ -151,12 +151,10 @@ jobs:
           dotnet tool install --global Microsoft.Playwright.CLI
           playwright install --with-deps
 
-      # Här lägger vi till miljövariabeln som tvingar headless-läge
-      - name: Kör Playwright GUI-tester
+      - name: Kör Playwright GUI-tester (med xvfb)
         run: |
           cd N2NTest
-          export PLAYWRIGHT_HEADLESS=true
-          dotnet test
+          xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' dotnet test
 
       - name: Ladda upp Playwright-artifacts (om det failar)
         if: always()
