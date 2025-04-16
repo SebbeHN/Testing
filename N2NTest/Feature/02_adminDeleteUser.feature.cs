@@ -110,7 +110,7 @@ namespace N2NTest.Feature
         testRunner.When("I delete the user with email \"newstaff@example.com\"", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
 #line hidden
 #line 11
-        testRunner.Then("the user with email \"newstaff@example.com\" should no longer be visible", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+        testRunner.Then("the user is deleted successfully", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden
             }
             this.ScenarioCleanup();

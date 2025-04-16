@@ -34,7 +34,7 @@ public class FordonFormSubmissionSteps
     [Given(@"I am on the dynamic form page")]
     public async Task GivenIAmOnTheDynamicFormPage()
     {
-        await _page.GotoAsync($"{BaseUrl}/dynamisk");
+        await _page.GotoAsync($"{BaseUrl}dynamisk");
     }
     
     [When(@"I select ""(.*)"" as the company type")]

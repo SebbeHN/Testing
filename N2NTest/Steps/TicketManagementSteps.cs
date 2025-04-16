@@ -36,7 +36,7 @@ public class TicketManagementSteps
 
         try
         {
-            await _page.WaitForURLAsync($"{BaseUrl}/staff/dashboard", new() { Timeout = 5000 });
+            await _page.WaitForURLAsync($"{BaseUrl}staff/dashboard", new() { Timeout = 5000 });
         }
         catch (TimeoutException)
         {
