@@ -109,7 +109,6 @@ jobs:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true
       CI: true
-      TEST_APP_URL: http://localhost:5000
     steps:
       - uses: actions/checkout@v4
 
@@ -117,82 +116,34 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Installera dotnet
-        uses: actions/setup-dotnet@v3
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Installera psql
+      - name: Install PostgreSQL client
         run: sudo apt-get install -y postgresql-client
 
-      - name: Initiera databasstruktur via init.sql
-        run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+      - name: Initiera databasstruktur
+        run: PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
 
-      - name: Uppdatera appsettings.json med anslutningssträng
+      - name: Uppdatera appsettings.json
         run: |
           sed -i 's/"DefaultConnection": ".*"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true"/g' ./WTP-main/server/appsettings.json
 
-      - name: Skapa CI-konfigurationsfil för testerna
+      - name: Bygg frontend (Vite)
         run: |
-          mkdir -p N2NTest/Helpers
-          echo "namespace N2NTest.Helpers {
-              public static class CIConfig {
-                  public static readonly bool IsRunningInCI = true;
-                  public static readonly int DefaultTimeout = 120000;
-                  public static readonly int NavigationTimeout = 90000;
-              }
-          }" > N2NTest/Helpers/CIConfig.cs
-
-      - name: Uppdatera testklasser för CI
-        run: |
-          find N2NTest/Steps -name "*.cs" -exec sed -i 's/Headless = false/Headless = true/g' {} \;
-          find N2NTest/Steps -name "*.cs" -exec sed -i 's/SlowMo = 500/SlowMo = 0/g' {} \;
-          find N2NTest/Steps -name "*.cs" -exec sed -i 's/SlowMo = 5000/SlowMo = 100/g' {} \;
-          # Add browser arguments for CI environment
-          find N2NTest/Steps -name "*.cs" -exec sed -i 's/await _playwright.Chromium.LaunchAsync/await _playwright.Chromium.LaunchAsync(new() { Headless = true, Args = new[] { "--no-sandbox", "--disable-dev-shm-usage" } })/g' {} \;
-
-      - name: Starta backend
-        run: |
-          cd ./WTP-main/server
-          export ASPNETCORE_URLS=http://localhost:5000
-          export ASPNETCORE_ENVIRONMENT=Development
-          dotnet run &
-
-      - name: Vänta på backend
-        run: |
-          npx wait-on http://localhost:5000 -t 60000
-          echo "Backend is running, checking for static files..."
-          # Check if the index.html exists in wwwroot
-          if [ -f "./WTP-main/server/wwwroot/index.html" ]; then
-            echo "Frontend files found in wwwroot"
-          else
-            echo "Warning: Frontend files not found in wwwroot, may cause test failures"
-          fi
-          # Give it extra time to fully initialize
-          sleep 15
-      
-      - name: Install client dependencies
-        run: npm install
-        working-directory: ./WTP-main/client
-
-      - name: Build React client (production)
-        run: |
+          npm install
           npm run build
-          ls -la ../server/wwwroot
         working-directory: ./WTP-main/client
-      
-      - name: Install serve (static file server)
-        run: npm install -g serve
-      
-      - name: Serve built client
-        run: nohup serve -s ../server/wwwroot -l 3001 > serve.log 2>&1 &
-        working-directory: ./WTP-main/client
-      
-      - name: Wait for frontend
-        run: npx wait-on http://localhost:3001/
-      
-      - name: Installera Playwright + build projekt
+
+      - name: Starta ASP.NET-backend (inkl. frontend via wwwroot)
+        run: dotnet run --project ./WTP-main/server/server.csproj &
+
+      - name: Vänta på backend (frontend är samma port nu)
+        run: npx wait-on http://localhost:5000
+
+      - name: Setup Playwright (.NET)
         run: |
           cd N2NTest
           dotnet restore
@@ -203,4 +154,15 @@ jobs:
       - name: Kör Playwright GUI-tester
         run: |
           cd N2NTest
-          dotnet test --retry-on-failure --blame-hang-timeout 120000
+          dotnet test
+
+      - name: Ladda upp Playwright-artifacts (om det failar)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-debug
+          path: |
+            N2NTest/TestResults/**/*.png
+            N2NTest/TestResults/**/*.html
+            N2NTest/bin/**/*.log
+
