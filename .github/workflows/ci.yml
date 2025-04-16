@@ -12,8 +12,8 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_DB: wtp
-          POSTGRES_USER: sebastianholmberg
-          POSTGRES_PASSWORD: devpass123
+          POSTGRES_USER: valid_user
+          POSTGRES_PASSWORD: valid_password
         ports:
           - 5432:5432
         options: >-
@@ -28,51 +28,12 @@ jobs:
         run: sudo apt-get install -y postgresql-client
       - name: Initiera databasstruktur
         run: |
-          # Kör grundläggande schemadefiniton från init.sql
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
-          
-          # Lägg till nödvändiga data i role-tabellen
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+          PGPASSWORD=valid_password psql -h localhost -U valid_user -d wtp -f sql/init.sql
+          PGPASSWORD=valid_password psql -h localhost -U valid_user -d wtp -c "
           -- Säkerställ att roller finns
           INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
           INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
-          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;
-          
-          -- Skapa vyn initial_form_messages
-          CREATE OR REPLACE VIEW initial_form_messages AS
-          SELECT
-              tf.chat_token,
-              tf.message,
-              tf.first_name as sender,
-              tf.submitted_at,
-              tf.issue_type,
-              tf.email,
-              tf.company_type as form_type
-          FROM tele_forms tf
-          WHERE tf.is_chat_active = true
-          UNION ALL
-          SELECT
-              ff.chat_token,
-              ff.message,
-              ff.first_name as sender,
-              ff.submitted_at,
-              ff.issue_type,
-              ff.email,
-              ff.company_type as form_type
-          FROM fordon_forms ff
-          WHERE ff.is_chat_active = true
-          UNION ALL
-          SELECT
-              fs.chat_token,
-              fs.message,
-              fs.first_name as sender,
-              fs.submitted_at,
-              fs.issue_type,
-              fs.email,
-              fs.company_type as form_type
-          FROM forsakrings_forms fs
-          WHERE fs.is_chat_active = true;"
-
+          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;"
   api_tests_and_seed:
     needs: setup_db
     runs-on: ubuntu-latest
@@ -81,8 +42,8 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_DB: wtp
-          POSTGRES_USER: sebastianholmberg
-          POSTGRES_PASSWORD: devpass123
+          POSTGRES_USER: valid_user
+          POSTGRES_PASSWORD: valid_password
         ports:
           - 5432:5432
         options: >-
@@ -92,390 +53,65 @@ jobs:
           --health-retries 5
     env:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=valid_user;Password=valid_password;Include Error Detail=true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.0.x'
-      - name: Installera psql
-        run: sudo apt-get install -y postgresql-client
-      - name: Initiera databasstruktur (samma som setup_db)
+      - name: Cleanup Database
         run: |
-          # Kör grundläggande schemadefiniton från init.sql
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
-          
-          # Lägg till nödvändiga data i role-tabellen
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
-          -- Säkerställ att roller finns
+          PGPASSWORD=valid_password psql -h localhost -U valid_user -d wtp -c "
+          DELETE FROM users WHERE email = 'newstaff@example.com';"
+      - name: Initiera databasstruktur
+        run: |
+          PGPASSWORD=valid_password psql -h localhost -U valid_user -d wtp -f sql/init.sql
+          PGPASSWORD=valid_password psql -h localhost -U valid_user -d wtp -c "
           INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
           INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
-          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;
-          
-          -- Skapa vyn initial_form_messages
-          CREATE OR REPLACE VIEW initial_form_messages AS
-          SELECT
-              tf.chat_token,
-              tf.message,
-              tf.first_name as sender,
-              tf.submitted_at,
-              tf.issue_type,
-              tf.email,
-              tf.company_type as form_type
-          FROM tele_forms tf
-          WHERE tf.is_chat_active = true
-          UNION ALL
-          SELECT
-              ff.chat_token,
-              ff.message,
-              ff.first_name as sender,
-              ff.submitted_at,
-              ff.issue_type,
-              ff.email,
-              ff.company_type as form_type
-          FROM fordon_forms ff
-          WHERE ff.is_chat_active = true
-          UNION ALL
-          SELECT
-              fs.chat_token,
-              fs.message,
-              fs.first_name as sender,
-              fs.submitted_at,
-              fs.issue_type,
-              fs.email,
-              fs.company_type as form_type
-          FROM forsakrings_forms fs
-          WHERE fs.is_chat_active = true;"
-      - name: Ändra anslutningssträngar i testfiler
+          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;"
+      - name: Uppdatera appsettings.json
         run: |
-          find ./WTP-main/server.Tests -name "*.cs" -type f -exec sed -i 's/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;";/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true";/g' {} \;
-      - name: Uppdatera appsettings.json med rätt anslutningssträng
-        run: |
-          sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true"/g' ./WTP-main/server/appsettings.json
-          echo "Anslutningssträng i appsettings.json uppdaterad"
-          cat ./WTP-main/server/appsettings.json
-      - name: Bygg och kör tester (xUnit)
-        run: |
-          dotnet restore ./WTP-main/server.Tests/server.Tests.csproj
-          dotnet build ./WTP-main/server.Tests/server.Tests.csproj
-          dotnet test ./WTP-main/server.Tests/server.Tests.csproj --verbosity normal
+          sed -i 's/"DefaultConnection": ".*"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=valid_user;Password=valid_password;"/' ./WTP-main/server/appsettings.json
       - name: Seed testdata
         run: |
-          # Kör SQL direkt från seed-filen istället för att gå via applikationen
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
-            -- Skapa admin-användare
-            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
-            VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
-            ON CONFLICT (email) DO UPDATE SET password = 'admin321';
-          "
-          echo "Direkt seed av testdata klar"
-
+          PGPASSWORD=valid_password psql -h localhost -U valid_user -d wtp -c "
+          INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+          VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
+          ON CONFLICT (email) DO UPDATE SET password = 'admin321';"
   postman_tests:
     needs: api_tests_and_seed
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: wtp
-          POSTGRES_USER: sebastianholmberg
-          POSTGRES_PASSWORD: devpass123
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true
     steps:
       - name: Checka ut repo
         uses: actions/checkout@v4
-      - name: Installera Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - name: Installera dotnet
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '8.0.x'
-      - name: Installera psql
-        run: sudo apt-get install -y postgresql-client
       - name: Installera curl
         run: sudo apt-get install -y curl
-      - name: Initiera databasstruktur (samma som setup_db)
+      - name: Ensure Services Are Ready
         run: |
-          # Kör grundläggande schemadefiniton från init.sql
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
-          
-          # Lägg till nödvändiga data i role-tabellen
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
-          -- Säkerställ att roller finns
-          INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
-          INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
-          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;
-          
-          -- Skapa vyn initial_form_messages
-          CREATE OR REPLACE VIEW initial_form_messages AS
-          SELECT
-              tf.chat_token,
-              tf.message,
-              tf.first_name as sender,
-              tf.submitted_at,
-              tf.issue_type,
-              tf.email,
-              tf.company_type as form_type
-          FROM tele_forms tf
-          WHERE tf.is_chat_active = true
-          UNION ALL
-          SELECT
-              ff.chat_token,
-              ff.message,
-              ff.first_name as sender,
-              ff.submitted_at,
-              ff.issue_type,
-              ff.email,
-              ff.company_type as form_type
-          FROM fordon_forms ff
-          WHERE ff.is_chat_active = true
-          UNION ALL
-          SELECT
-              fs.chat_token,
-              fs.message,
-              fs.first_name as sender,
-              fs.submitted_at,
-              fs.issue_type,
-              fs.email,
-              fs.company_type as form_type
-          FROM forsakrings_forms fs
-          WHERE fs.is_chat_active = true;"
-      - name: Uppdatera appsettings.json med rätt anslutningssträng
-        run: |
-          sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true"/g' ./WTP-main/server/appsettings.json
-          echo "Anslutningssträng i appsettings.json uppdaterad"
-      - name: Seed testdata
-        run: |
-          # Kör SQL direkt från seed-filen istället för att gå via applikationen
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
-            -- Skapa admin-användare
-            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
-            VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
-            ON CONFLICT (email) DO UPDATE SET password = 'admin321';
-            
-            -- Seed minimal testdata för Postman-testerna
-            INSERT INTO public.tele_forms (first_name, email, service_type, issue_type, message, chat_token, submitted_at, is_chat_active, company_type)
-            VALUES ('TestKund', 'testkund@example.com', 'Bredband', 'Tekniskt problem', 'Testar ett formulär för teleärenden', '14dbbbb1-df13-4f5a-9ed7-f4553c48469c', '2025-04-07 09:51:40.188483 +00:00', true, 'Tele/Bredband')
-            ON CONFLICT DO NOTHING;
-          "
-          echo "Direkt seed av testdata klar"
-      - name: Installera Newman
-        run: npm install -g newman
-      - name: Starta backend
-        run: dotnet run --project ./WTP-main/server/server.csproj &
-      - name: Vänta på backend
-        run: sleep 30
-      - name: Kontrollera att backend körs
-        run: |
-          echo "Kontrollerar om backend svarar..."
-          curl -v http://localhost:5000/api/health || echo "Health endpoint svarar inte, men vi fortsätter"
-          echo "Testar admin-inloggning..."
-          curl -v -X POST http://localhost:5000/api/login -H "Content-Type: application/json" -d '{"username":"admin@admin.com","password":"admin321"}' || echo "Login-endpoint svarar inte, men vi fortsätter"
+          curl --retry 5 --retry-connrefused --retry-delay 10 http://localhost:5000/api/health
+          curl --retry 5 --retry-connrefused --retry-delay 10 http://localhost:3001
       - name: Kör Postman-tester
         run: |
-          # Se till att filerna finns och tillgängliga
-          echo "Listar Postman-filer:"
-          ls -la postman/
-          
           newman run postman/WTP.postman_collection.json \
             -e postman/WTP_environment.postman_environment.json \
             --insecure \
             --reporters cli,json \
-            --reporter-json-export newman-results.json \
-            --export-cookie-jar newman_cookies.json \
-            --verbose
-
-
+            --reporter-json-export newman-results.json
   gui_tests:
     needs: api_tests_and_seed
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: wtp
-          POSTGRES_USER: sebastianholmberg
-          POSTGRES_PASSWORD: devpass123
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     env:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=wtp;Username=valid_user;Password=valid_password;Include Error Detail=true
       CI: true
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - name: Installera dotnet
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '8.0.x'
-      - name: Installera psql
-        run: sudo apt-get install -y postgresql-client
-      - name: Initiera databasstruktur (samma som setup_db)
-        run: |
-          # Kör grundläggande schemadefiniton från init.sql
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
-          
-          # Lägg till nödvändiga data i role-tabellen
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
-          -- Säkerställ att roller finns
-          INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
-          INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
-          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;
-          
-          -- Skapa vyn initial_form_messages
-          CREATE OR REPLACE VIEW initial_form_messages AS
-          SELECT
-              tf.chat_token,
-              tf.message,
-              tf.first_name as sender,
-              tf.submitted_at,
-              tf.issue_type,
-              tf.email,
-              tf.company_type as form_type
-          FROM tele_forms tf
-          WHERE tf.is_chat_active = true
-          UNION ALL
-          SELECT
-              ff.chat_token,
-              ff.message,
-              ff.first_name as sender,
-              ff.submitted_at,
-              ff.issue_type,
-              ff.email,
-              ff.company_type as form_type
-          FROM fordon_forms ff
-          WHERE ff.is_chat_active = true
-          UNION ALL
-          SELECT
-              fs.chat_token,
-              fs.message,
-              fs.first_name as sender,
-              fs.submitted_at,
-              fs.issue_type,
-              fs.email,
-              fs.company_type as form_type
-          FROM forsakrings_forms fs
-          WHERE fs.is_chat_active = true;"
-      - name: Uppdatera appsettings.json med rätt anslutningssträng
-        run: |
-          sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;Include Error Detail=true"/g' ./WTP-main/server/appsettings.json
-          echo "Anslutningssträng i appsettings.json uppdaterad"
-      - name: Seed testdata
-        run: |
-          # Kör SQL direkt från seed-filen istället för att gå via applikationen
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
-            -- Skapa admin-användare
-            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
-            VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
-            ON CONFLICT (email) DO UPDATE SET password = 'admin321';
-            
-            -- Skapa staff-användare
-            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
-            VALUES ('staff', 'staff123', '2025-04-07 07:42:10.181265 +00:00', 'tele', 1, 'staff@staff.com')
-            ON CONFLICT (email) DO UPDATE SET password = 'staff123';
-            
-            -- Skapa en specifik testanvändare för delete-testet
-            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
-            VALUES ('Test', 'password123', '2025-04-07 07:42:10.181265 +00:00', 'tele', 1, 'newstaff@example.com')
-            ON CONFLICT (email) DO UPDATE SET password = 'password123';
-            
-            -- Seed minimal testdata för GUI-testerna
-            INSERT INTO public.tele_forms (first_name, email, service_type, issue_type, message, chat_token, submitted_at, is_chat_active, company_type)
-            VALUES ('TestKund', 'testkund@example.com', 'Bredband', 'Tekniskt problem', 'Testar ett formulär för teleärenden', '14dbbbb1-df13-4f5a-9ed7-f4553c48469c', '2025-04-07 09:51:40.188483 +00:00', true, 'Tele/Bredband')
-            ON CONFLICT DO NOTHING;
-          "
-          echo "Direkt seed av testdata klar"
-      
-      - name: Skapa CI-konfigurationsfil för testerna
-        run: |
-          mkdir -p N2NTest/Helpers
-          cat > N2NTest/Helpers/CIConfig.cs << 'EOL'
-          namespace N2NTest.Helpers
-          {
-              public static class CIConfig
-              {
-                  public static readonly bool IsRunningInCI = true;
-                  public static readonly int DefaultTimeout = 60000;
-                  public static readonly int NavigationTimeout = 45000;
-              }
-          }
-          EOL
-          cat N2NTest/Helpers/CIConfig.cs
-      
       - name: Uppdatera AdminDeleteUserSteps för bättre CI-kompatibilitet
         run: |
           if [ -f "N2NTest/Steps/AdminDeleteUserSteps.cs" ]; then
             sed -i 's/Timeout = 20000/Timeout = 60000/g' N2NTest/Steps/AdminDeleteUserSteps.cs
-            sed -i 's/Headless = false/Headless = true/g' N2NTest/Steps/AdminDeleteUserSteps.cs
-            echo "AdminDeleteUserSteps.cs uppdaterad för CI"
           fi
-      
-      - name: Uppdatera ChatFunctionalitySteps för bättre CI-kompatibilitet
-        run: |
-          if [ -f "N2NTest/Steps/ChatFunctionalitySteps.cs" ]; then
-            sed -i 's/Timeout = 10000/Timeout = 60000/g' N2NTest/Steps/ChatFunctionalitySteps.cs
-            sed -i 's/Headless = false/Headless = true/g' N2NTest/Steps/ChatFunctionalitySteps.cs
-            echo "ChatFunctionalitySteps.cs uppdaterad för CI"
-          fi
-      
-      - name: Uppdatera alla andra testklasser
-        run: |
-          find N2NTest/Steps -name "*.cs" -exec sed -i 's/Headless = false/Headless = true/g' {} \;
-          find N2NTest/Steps -name "*.cs" -exec sed -i 's/SlowMo = 500/SlowMo = 0/g' {} \;
-          find N2NTest/Steps -name "*.cs" -exec sed -i 's/SlowMo = 5000/SlowMo = 100/g' {} \;
-          echo "Alla testklasser uppdaterade för CI"
-      
-      - name: Starta backend
-        run: dotnet run --project ./WTP-main/server/server.csproj &
-      
-      - name: Vänta på backend
-        run: sleep 60
-
-      - name: Starta frontend (Vite)
-        run: |
-          cd WTP-main/client
-          npm install
-          npm run dev -- --host &
-          sleep 30
-          curl -v http://localhost:3001 || echo "⚠️ Frontend svarar inte på port 3001, men fortsätter ändå"
-      
-      - name: Kontrollera tjänststatus
-        run: |
-          echo "Testar om frontend är redo..."
-          curl -v http://localhost:3001 || echo "⚠️ Frontend svarar inte, men fortsätter ändå"
-          echo "Testar om backend är redo..."
-          curl -v http://localhost:5000/api/health || echo "⚠️ Backend hälsoendpoint svarar inte, men fortsätter ändå"
-          echo "Väntar ytterligare en stund för att säkerställa att allt är uppstartat..."
-          sleep 30
-
-      - name: Installera Playwright + build projekt
-        run: |
-          cd N2NTest
-          dotnet restore
-          dotnet build
-          dotnet tool install --global Microsoft.Playwright.CLI
-          playwright install --with-deps
-
       - name: Kör Playwright GUI-tester
         run: |
-          cd N2NTest
           dotnet test
