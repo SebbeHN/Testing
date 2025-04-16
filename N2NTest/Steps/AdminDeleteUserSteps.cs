@@ -14,6 +14,7 @@ public class AdminDeleteUserSteps
     private IPage _page;
     private IBrowser _browser;
     private IPlaywright _playwright;
+    private string BaseUrl => Environment.GetEnvironmentVariable("TEST_APP_URL") ?? "http://localhost:5000/";
 
     [BeforeScenario]
     public async Task Setup()
@@ -39,8 +40,7 @@ public async Task GivenIAmLoggedInAsAnAdmin()
         
         // Navigate to login page with proper error handling
         Console.WriteLine("Navigating to login page...");
-        var response = await _page.GotoAsync("http://localhost:3001/staff/login", 
-            new() { WaitUntil = WaitUntilState.NetworkIdle, Timeout = 30000 });
+        var response = await _page.GotoAsync($"{BaseUrl}staff/login");
         
         if (response == null || !response.Ok)
         {
@@ -187,12 +187,7 @@ public async Task WhenIDeleteUserWithEmail(string email)
         await _page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         await Task.Delay(3000);
         
-        // Logga tabellinnehåll för debugging
-        var tableContent = await _page.EvaluateAsync<string>(@"() => {
-            const rows = Array.from(document.querySelectorAll('table tr'));
-            return rows.map(row => row.textContent).join('\n');
-        }");
-        Console.WriteLine($"Tabellinnehåll: {tableContent}");
+        
         
         // Kontrollera om användaren finns överhuvudtaget
         var userExists = await _page.EvaluateAsync<bool>(@"(email) => {

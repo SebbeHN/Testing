@@ -15,13 +15,14 @@ public class ChatFunctionalitySteps
     private IBrowser _browser;
     private IBrowserContext _context;
     private IPage _page;
-
+    private string BaseUrl => Environment.GetEnvironmentVariable("TEST_APP_URL") ?? "http://localhost:5000/";
     [BeforeScenario]
     public async Task Setup()
     {
         var result = await PlaywrightSetup.CreateBrowserAndPage();
         _browser = result.browser;
         _page = result.page;
+        
     }
 
     [AfterScenario]
@@ -36,7 +37,7 @@ public class ChatFunctionalitySteps
     [Given("I click on a ticket on öppna chatt")]
     public async Task GivenIClickOnATicketOnOppnaChatt()
     {
-        await _page.GotoAsync("http://localhost:3001/staff/dashboard");
+        await _page.GotoAsync($"{BaseUrl}staff/dashboard");
 
         // Logga in som staff
         await LoginHelper.LoginAsRole(_page, "staff");
