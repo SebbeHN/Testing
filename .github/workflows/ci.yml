@@ -4,7 +4,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-
 jobs:
   api_tests:
     runs-on: ubuntu-latest
@@ -31,47 +30,69 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       
-      - name: Install required tools
-        run: sudo apt-get update && sudo apt-get install -y jq postgresql-client
+      - name: Install psql
+        run: sudo apt-get install -y postgresql-client
       
       - name: Initialize database structure
         run: |
           # Run schema definition from init.sql
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+          
+          # Add necessary roles
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+          INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;"
       
       - name: Update connection strings
         run: |
-          # Create a temporary file with the correct connection string
-          cat > ./WTP-main/server/appsettings.json.new << 'EOF'
-          {
-            "Logging": {
-              "LogLevel": {
-                "Default": "Information",
-                "Microsoft.AspNetCore": "Warning"
-              }
-            },
-            "AllowedHosts": "*",
-            "ConnectionStrings": {
-              "DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"
-            }
-          }
-          EOF
-          
-          # Replace the original file
-          mv ./WTP-main/server/appsettings.json.new ./WTP-main/server/appsettings.json
+          # Update test files
+          find ./WTP-main -name "*.cs" -type f -exec grep -l "_connectionString" {} \; | xargs -I{} sed -i 's/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;";/private readonly string _connectionString = "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;";/g' {}
+
+          # Update connection string in appsettings.json
+          sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"/g' ./WTP-main/server/appsettings.json
       
       - name: Skip failing test
         run: |
           # Find the test file and add Skip attribute
           if grep -q "GetTickets_FiltersByCompanyType" ./WTP-main/server.Tests/Tickets/TicketTests.cs; then
             sed -i 's/\[Fact\]\s*public async Task GetTickets_FiltersByCompanyType/[Fact(Skip = "initial_form_messages view not needed")]\n    public async Task GetTickets_FiltersByCompanyType/g' ./WTP-main/server.Tests/Tickets/TicketTests.cs
+            echo "Skipped the failing test"
           fi
+      
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: ./WTP-main
       
       - name: Build and run tests (xUnit)
         run: |
-          dotnet restore ./WTP-main
           dotnet build ./WTP-main/server.Tests/server.Tests.csproj
           dotnet test ./WTP-main/server.Tests/server.Tests.csproj --verbosity normal
+      
+      - name: Seed admin user
+        run: |
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+            VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
+            ON CONFLICT (email) DO UPDATE SET password = 'admin321';
+          "
+      
+      - name: Install tools
+        run: npm install -g newman wait-on
+      
+      - name: Start backend
+        run: |
+          cd ./WTP-main/server
+          dotnet run &
+      
+      - name: Wait for backend
+        run: npx wait-on http://localhost:5000/api/health -t 60000 || echo "Backend health check timed out"
+      
+      - name: Run Postman tests
+        run: |
+          newman run postman/WTP.postman_collection.json \
+            -e postman/WTP_environment.postman_environment.json \
+            --insecure
 
   gui_tests:
     runs-on: ubuntu-latest
@@ -98,7 +119,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup dotnet
+      - name: Setup dotnet and Node.js
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -116,27 +137,13 @@ jobs:
       - name: Initialize database
         run: |
           PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -f sql/init.sql
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+          INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (2, 'Admin') ON CONFLICT (id) DO NOTHING;
+          INSERT INTO role (id, company_role) VALUES (3, 'SuperAdmin') ON CONFLICT (id) DO NOTHING;"
       
       - name: Update connection strings
-        run: |
-          # Create a temporary file with the correct connection string
-          cat > ./WTP-main/server/appsettings.json.new << 'EOF'
-          {
-            "Logging": {
-              "LogLevel": {
-                "Default": "Information",
-                "Microsoft.AspNetCore": "Warning"
-              }
-            },
-            "AllowedHosts": "*",
-            "ConnectionStrings": {
-              "DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"
-            }
-          }
-          EOF
-          
-          # Replace the original file
-          mv ./WTP-main/server/appsettings.json.new ./WTP-main/server/appsettings.json
+        run: sed -i 's/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;"/"DefaultConnection": "Host=localhost;Port=5432;Database=wtp;Username=sebastianholmberg;Password=devpass123;"/g' ./WTP-main/server/appsettings.json
       
       - name: Prepare application
         run: |
@@ -148,10 +155,29 @@ jobs:
           npm install
           npm run build
       
-      - name: Seed test user
+      - name: Seed test data
         run: |
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "INSERT INTO role (id, company_role) VALUES (1, 'User') ON CONFLICT (id) DO NOTHING;"
-          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "INSERT INTO public.users (first_name, password, created_at, company, role_id, email) VALUES ('Test', 'password123', NOW(), 'fordon', 1, 'newstaff@example.com') ON CONFLICT (email) DO UPDATE SET first_name = 'Test', company = 'fordon';"
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+            -- Create admin user
+            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+            VALUES ('admin', 'admin321', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 2, 'admin@admin.com')
+            ON CONFLICT (email) DO UPDATE SET password = 'admin321';
+            
+            -- Create staff user
+            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+            VALUES ('staff', 'staff123', '2025-04-07 07:42:10.181265 +00:00', 'tele', 1, 'staff@staff.com')
+            ON CONFLICT (email) DO UPDATE SET password = 'staff123';
+            
+            -- Create test user for delete test
+            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+            VALUES ('Test', 'password123', '2025-04-07 07:42:10.181265 +00:00', 'fordon', 1, 'newstaff@example.com')
+            ON CONFLICT (email) DO UPDATE SET password = 'password123';
+            
+            -- Seed test data for GUI tests
+            INSERT INTO public.tele_forms (first_name, email, service_type, issue_type, message, chat_token, submitted_at, is_chat_active, company_type)
+            VALUES ('TestKund', 'testkund@example.com', 'Bredband', 'Tekniskt problem', 'Testar ett formulär för teleärenden', '14dbbbb1-df13-4f5a-9ed7-f4553c48469c', '2025-04-07 09:51:40.188483 +00:00', true, 'Tele/Bredband')
+            ON CONFLICT DO NOTHING;
+          "
       
       - name: Start services
         run: |
@@ -167,6 +193,14 @@ jobs:
           npx wait-on http://localhost:3001 -t 60000 || echo "Frontend wait timed out"
           npx wait-on http://localhost:5000/api/health -t 60000 || echo "Backend wait timed out"
           sleep 10
+      
+      - name: Verify test user exists
+        run: |
+          PGPASSWORD=devpass123 psql -h localhost -U sebastianholmberg -d wtp -c "
+            INSERT INTO public.users (first_name, password, created_at, company, role_id, email) 
+            VALUES ('Test', 'password123', NOW(), 'fordon', 1, 'newstaff@example.com')
+            ON CONFLICT (email) DO UPDATE SET first_name = 'Test', company = 'fordon';
+          "
       
       - name: Run Playwright tests
         run: |
