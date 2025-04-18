@@ -128,13 +128,11 @@ public class AdminDeleteUserSteps
     {
         try
         {
-            await _page.ScreenshotAsync(new() { Path = "before-delete.png" });
             await Task.Delay(5000);
 
             await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
             await _page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
             await Task.Delay(8000);
-            await _page.ScreenshotAsync(new() { Path = "table-before-searching.png" });
 
             var userExists = await _page.EvaluateAsync<bool>(@"(email) => {
                 const rows = Array.from(document.querySelectorAll('table tr'));
@@ -191,14 +189,10 @@ public class AdminDeleteUserSteps
             }
 
             await Task.Delay(3000);
-            await _page.ScreenshotAsync(new() { Path = "after-delete-button-click.png" });
-
             await Task.Delay(10000);
-            await _page.ScreenshotAsync(new() { Path = "after-delete-complete.png" });
         }
         catch (Exception)
         {
-            await _page.ScreenshotAsync(new() { Path = "delete-error.png" });
             throw;
         }
     }
@@ -212,7 +206,6 @@ public class AdminDeleteUserSteps
             await _page.ReloadAsync();
             await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
             await Task.Delay(8000);
-            await _page.ScreenshotAsync(new() { Path = "table-after-reload.png" });
 
             string email = "newstaff@example.com";
 
@@ -223,12 +216,9 @@ public class AdminDeleteUserSteps
 
             await Task.Delay(3000);
             Assert.False(userExists, $"User with email {email} should not be present after deletion");
-
-            await _page.ScreenshotAsync(new() { Path = "user-deleted-verification.png" });
         }
         catch (Exception)
         {
-            await _page.ScreenshotAsync(new() { Path = "verification-error.png" });
             throw;
         }
     }
